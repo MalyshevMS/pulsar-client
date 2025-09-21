@@ -7,6 +7,9 @@
 #include <atomic>
 #include <string>
 
+#include "../lib/jsonlib.h"
+#include "../Other/Datetime.hpp"
+
 class Client {
 private:
     sf::TcpSocket socket;
@@ -14,9 +17,9 @@ private:
     unsigned short port;
     std::atomic<bool> connected;
     std::thread receiveThread;
-    
+    std::string name;
 public:
-    Client(const std::string& ip, unsigned short p) : serverIP(ip), port(p), connected(false) {}
+    Client(const std::string& name, const std::string& ip, unsigned short p) : name(name), serverIP(ip), port(p), connected(false) {}
     
     ~Client() {
         disconnect();
@@ -41,11 +44,31 @@ public:
         socket.disconnect();
     }
     
-    void sendMessage(const std::string& message) {
+    void sendMessage(const std::string& message, const std::string& dest) {
         if (!connected) return;
-        
+
+        /*
+            Message format (JSON):
+            {
+                "type": "message",
+                "time": current time (integer, seconds since epoch),
+                "src": "this client username",
+                "dst": "destination (channel or user)"
+                "msg": "your message text"
+            }
+        */
+
+        auto json = Json({
+            {"type", "message"},
+            {"time", Datetime::now().toTime()},
+            {"src", name},
+            {"dst", dest},
+            {"msg", message}
+        });
+
+        std::string msg = jsonToString(json);
         sf::Packet packet;
-        packet << message;
+        packet << msg;
         
         if (socket.send(packet) != sf::Socket::Status::Done) {
             std::cout << "Error sending message" << std::endl;
@@ -61,7 +84,10 @@ public:
             if (status == sf::Socket::Status::Done) {
                 std::string message;
                 if (packet >> message) {
+                    Json json = Json::parse(message);
+
                     std::cout << "\nReceived: " << message << std::endl;
+                    std::cout << "Decoded: " << std::string(json["msg"]) << std::endl;
                     std::cout << "> " << std::flush;
                 }
             } else if (status == sf::Socket::Status::Disconnected) {
@@ -86,19 +112,23 @@ public:
         receiveThread = std::thread(&Client::receiveMessages, this);
         
         std::string message;
+        std::string dest = "#all";
         while (connected) {
             std::cout << "> " << std::flush;
             std::getline(std::cin, message);
             
             if (!connected) break;
             
-            if (message == "/exit") {
+            if (message == "!exit") {
                 std::cout << "Disconnecting..." << std::endl;
                 break;
+            } else if (message.substr(0, 5) == "!dest") {
+                dest = message.substr(6, std::string::npos);
+                continue;
             }
             
             if (!message.empty()) {
-                sendMessage(message);
+                sendMessage(message, dest);
             }
         }
         
