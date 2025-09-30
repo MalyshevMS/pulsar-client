@@ -9,6 +9,7 @@
 
 #include "../lib/jsonlib.h"
 #include "../Other/Datetime.hpp"
+#include "Database.hpp"
 
 class Client {
 private:
@@ -18,8 +19,9 @@ private:
     std::atomic<bool> connected;
     std::thread receiveThread;
     std::string name;
+    Database db;
 public:
-    Client(const std::string& name, const std::string& ip, unsigned short p) : name(name), serverIP(ip), port(p), connected(false) {}
+    Client(const std::string& name, const std::string& ip, unsigned short p) : name(name), serverIP(ip), port(p), connected(false), db(name) {}
     
     ~Client() {
         disconnect();
@@ -34,8 +36,9 @@ public:
         }
         connected = true;
         std::cout << "Connected to server! Type your messages below." << std::endl;
-        std::cout << "Type '/exit' to quit." << std::endl;
+        std::cout << "Type '!exit' to quit." << std::endl;
         std::cout << "------------------------" << std::endl;
+        sendMessage("!connect " + name, "!server");
         return true;
     }
     
@@ -112,7 +115,7 @@ public:
         receiveThread = std::thread(&Client::receiveMessages, this);
         
         std::string message;
-        std::string dest = "#all";
+        std::string dest = ":all";
         while (connected) {
             std::cout << "> " << std::flush;
             std::getline(std::cin, message);
@@ -122,7 +125,12 @@ public:
             if (message == "!exit") {
                 std::cout << "Disconnecting..." << std::endl;
                 break;
-            } else if (message.substr(0, 5) == "!dest") {
+            }
+            else if (message == "!cldb") {
+                std::cout << db.getString() << std::endl;
+                continue;
+            }
+            else if (message.substr(0, 5) == "!dest") {
                 dest = message.substr(6, std::string::npos);
                 continue;
             }
