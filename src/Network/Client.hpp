@@ -3,13 +3,18 @@
 #include <SFML/Network.hpp>
 #include <iostream>
 #include <thread>
-#include <vector>
+#include <list>
 #include <atomic>
 #include <string>
 
 #include "../lib/jsonlib.h"
+#include "../lib/hash.h"
 #include "../Other/Datetime.hpp"
 #include "Database.hpp"
+
+#define PULSAR_MESSAGE_LIMIT 10
+#define PULSAR_MAX_RESPONSE_TIME 5000
+// #define PULSAR_DEBUG
 
 class Client {
 private:
@@ -17,14 +22,16 @@ private:
     std::string serverIP;
     unsigned short port;
     std::atomic<bool> connected;
+    std::atomic<bool> login_success = false;
     std::thread receiveThread;
     std::string name;
+    std::string password;
+    std::list<std::string> server_responses;
     Database db;
 public:
-    Client(const std::string& name, const std::string& ip, unsigned short p) : name(name), serverIP(ip), port(p), connected(false), db(name) {}
-    
-    ~Client() {
-        disconnect();
+    Client(const std::string& name, const std::string& password_unhashed, const std::string& ip, unsigned short p)
+     : name(name), serverIP(ip), port(p), connected(false), db(name) {
+        password = hash(password_unhashed);
     }
     
     bool connectToServer() {
@@ -35,16 +42,37 @@ public:
             return false;
         }
         connected = true;
-        std::cout << "Connected to server! Type your messages below." << std::endl;
-        std::cout << "Type '!exit' to quit." << std::endl;
-        std::cout << "------------------------" << std::endl;
-        sendMessage("!connect " + name, "!server");
+        sendMessage("!login " + jsonToString(Json::array({name, password})), "!server");
         return true;
     }
     
     void disconnect() {
         connected = false;
         socket.disconnect();
+    }
+
+    void requestDb() {
+        sendMessage("!db user " + name, "!server");
+        std::string response;
+        Json json;
+        int32_t wait_time = 0;
+        while (true) {
+            response = *(--server_responses.end());
+            try {
+                json = Json::parse(response);
+                if (json.contains("channels")) break;
+            } catch(const std::exception& e){}
+            sf::sleep(sf::milliseconds(1));
+            wait_time++;
+
+            if (wait_time > PULSAR_MAX_RESPONSE_TIME) {
+                std::cerr << "Database request took too long; Disconecting..." << std::endl;
+                disconnect();
+                break;
+            }
+        }
+        
+        
     }
     
     void sendMessage(const std::string& message, const std::string& dest) {
@@ -75,7 +103,7 @@ public:
         
         if (socket.send(packet) != sf::Socket::Status::Done) {
             std::cout << "Error sending message" << std::endl;
-            connected = false;
+            disconnect();
         }
     }
     
@@ -89,17 +117,31 @@ public:
                 if (packet >> message) {
                     Json json = Json::parse(message);
 
-                    std::cout << "\nReceived: " << message << std::endl;
-                    std::cout << "Decoded: " << std::string(json["msg"]) << std::endl;
+                    #ifdef PULSAR_DEBUG
+                        std::cout << "\nReceived: " << message << std::endl;
+                        std::cout << "Decoded: " << std::string(json["msg"]) << std::endl;
+                    #endif                    
+
                     std::cout << "> " << std::flush;
+
+                    if (json["src"] == "!server") {
+                        if (json["msg"] == "login fail_username" || json["msg"] == "login fail_password") {
+                            disconnect();
+                        } else if (json["msg"] == "login success") {
+                            login_success = true;
+                        }
+
+                        server_responses.push_back(json["msg"]);
+                        if (server_responses.size() > PULSAR_MESSAGE_LIMIT) server_responses.pop_front();
+                    }
                 }
             } else if (status == sf::Socket::Status::Disconnected) {
                 std::cout << "\nDisconnected from server" << std::endl;
-                connected = false;
+                disconnect();
                 break;
             } else if (status == sf::Socket::Status::Error) {
                 std::cout << "\nNetwork error occurred" << std::endl;
-                connected = false;
+                disconnect();
                 break;
             }
             
@@ -113,6 +155,13 @@ public:
         }
         
         receiveThread = std::thread(&Client::receiveMessages, this);
+        while (!login_success) sf::sleep(sf::milliseconds(1));
+
+        std::cout << "Connected to server! Type your messages below." << std::endl;
+        std::cout << "Type '!exit' to quit." << std::endl;
+        std::cout << "------------------------" << std::endl;
+
+        requestDb();
         
         std::string message;
         std::string dest = ":all";
@@ -134,12 +183,15 @@ public:
                 dest = message.substr(6, std::string::npos);
                 continue;
             }
+            else if (message.substr(0, 5) == "!msgs") {
+                for (auto& i : server_responses) std::cout << i << "; ";
+                std::cout << std::endl;
+                continue;
+            }
             
             if (!message.empty()) {
                 sendMessage(message, dest);
             }
         }
-        
-        disconnect();
     }
 };

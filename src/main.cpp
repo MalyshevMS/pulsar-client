@@ -7,6 +7,7 @@
 int main(int argc, const char** argv) {
     std::string serverIP;
     std::string name;
+    std::string password;
     #ifndef debug
         std::cout << "Enter server IP (127.0.0.1 for localhost): ";
         std::getline(std::cin, serverIP);
@@ -24,8 +25,10 @@ int main(int argc, const char** argv) {
     } else {
         name = "@" + std::string(argv[1]);
     }
+    std::cout << "Enter password (press ENTER if none was provided): ";
+    std::getline(std::cin, password);
     
-    Client client(name, serverIP, PULSAR_PORT);
+    Client client(name, password, serverIP, PULSAR_PORT);
     client.run();
     
     std::cout << "Client terminated." << std::endl;
