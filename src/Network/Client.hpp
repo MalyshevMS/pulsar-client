@@ -31,7 +31,8 @@ private:
 public:
     Client(const std::string& name, const std::string& password_unhashed, const std::string& ip, unsigned short p)
      : name(name), serverIP(ip), port(p), connected(false), db(name) {
-        password = hash(password_unhashed);
+        if (password_unhashed.size() > 0) password = hash(password_unhashed);
+        else password = "";
     }
     
     bool connectToServer() {
@@ -49,6 +50,7 @@ public:
     void disconnect() {
         connected = false;
         socket.disconnect();
+        exit(0);
     }
 
     void requestDb() {
@@ -71,8 +73,21 @@ public:
                 break;
             }
         }
-        
-        
+    }
+
+    void parse_server(Json& json) {
+        if (json["msg"] == "login fail_password") {
+            std::cerr << "Incorrect password; Disconnecting...";
+            disconnect();
+        } else if (json["msg"] == "login fail_username") {
+            std::cerr << "Incorrect login; Register new user? (y/N): ";
+            std::string ans;
+            std::getline(std::cin, ans);
+            if (ans[0] == (char)0 || ans[0] == 'n' || ans[0] == 'N') disconnect();
+            sendMessage("!register " + jsonToString(Json::array({name, password})), "!server");
+        } else if (json["msg"] == "login success") {
+            login_success = true;
+        }
     }
     
     void sendMessage(const std::string& message, const std::string& dest) {
@@ -120,19 +135,18 @@ public:
                     #ifdef PULSAR_DEBUG
                         std::cout << "\nReceived: " << message << std::endl;
                         std::cout << "Decoded: " << std::string(json["msg"]) << std::endl;
-                    #endif                    
-
-                    std::cout << "> " << std::flush;
+                    #endif
 
                     if (json["src"] == "!server") {
-                        if (json["msg"] == "login fail_username" || json["msg"] == "login fail_password") {
-                            disconnect();
-                        } else if (json["msg"] == "login success") {
-                            login_success = true;
-                        }
+                        parse_server(json);
 
                         server_responses.push_back(json["msg"]);
                         if (server_responses.size() > PULSAR_MESSAGE_LIMIT) server_responses.pop_front();
+                    } else {
+                        #ifndef PULSAR_DEBUG
+                            std::cout << "[From "  << std::string(json["src"]) << "]: " << std::string(json["msg"]) << std::endl;
+                            std::cout << "> " << std::flush;
+                        #endif
                     }
                 }
             } else if (status == sf::Socket::Status::Disconnected) {
@@ -173,6 +187,7 @@ public:
             
             if (message == "!exit") {
                 std::cout << "Disconnecting..." << std::endl;
+                disconnect();
                 break;
             }
             else if (message == "!cldb") {
