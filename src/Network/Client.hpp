@@ -24,6 +24,7 @@ private:
     std::atomic<bool> connected;
     std::atomic<bool> login_success = false;
     std::thread receiveThread;
+    std::string dest;
     std::string name;
     std::string password;
     std::list<std::string> server_responses;
@@ -50,6 +51,8 @@ public:
     void disconnect() {
         connected = false;
         socket.disconnect();
+        std::cout << "Press any key to continue...";
+        std::cin.get();
         exit(0);
     }
 
@@ -73,6 +76,8 @@ public:
                 break;
             }
         }
+
+        db.init(json);
     }
 
     void parse_server(Json& json) {
@@ -142,10 +147,10 @@ public:
 
                         server_responses.push_back(json["msg"]);
                         if (server_responses.size() > PULSAR_MESSAGE_LIMIT) server_responses.pop_front();
-                    } else {
+                    } else if (db.is_channel_member(json["dst"]) || json["dst"] == name) {
                         #ifndef PULSAR_DEBUG
-                            std::cout << "[From "  << std::string(json["src"]) << "]: " << std::string(json["msg"]) << std::endl;
-                            std::cout << "> " << std::flush;
+                            std::cout << "[From "  << std::string(json["src"]) << " to " << std::string(json["dst"]) << "]: " << std::string(json["msg"]) << std::endl;
+                            std::cout << "(to " << dest << ") > " << std::flush;
                         #endif
                     }
                 }
@@ -178,9 +183,9 @@ public:
         requestDb();
         
         std::string message;
-        std::string dest = ":all";
+        dest = ":all";
         while (connected) {
-            std::cout << "> " << std::flush;
+            std::cout << "(to " << dest << ") > " << std::flush;
             std::getline(std::cin, message);
             
             if (!connected) break;
@@ -199,8 +204,12 @@ public:
                 continue;
             }
             else if (message.substr(0, 5) == "!msgs") {
-                for (auto& i : server_responses) std::cout << i << "; ";
-                std::cout << std::endl;
+                for (auto& i : server_responses) std::cout << i << " ; EOT\n";
+                std::cout << std::flush;
+                continue;
+            }
+            else if (message.substr(0, 2) == "!l") {
+                std::cout << *(--server_responses.end()) << " ; EOT\n";
                 continue;
             }
             

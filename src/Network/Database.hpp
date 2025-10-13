@@ -24,8 +24,9 @@
 class Database {
 private:
     Json db;
+    std::string username;
 public:
-    Database(const std::string& username) {
+    Database(const std::string& username) : username(username) {
         db = Json({
            {"type", "database"},
            {"users", Json({
@@ -42,5 +43,22 @@ public:
 
     std::string getString() {
         return jsonToString(db);
+    }
+
+    void init(const Json& json) {
+        // TODO: implement this
+        db["users"][username]["name"] = json["name"];
+        db["users"][username]["channels"] = json["channels"];
+        db["users"][username]["contacts"] = json["contacts"];
+        db["users"][username]["email"] = json["email"];
+        db["users"][username]["status"] = json["status"];
+    }
+
+    bool is_channel_member(const std::string& channel) {
+        std::vector<std::string> channels = db["users"][username]["channels"];
+        for (auto& i : channels) {
+            if (i == channel) return true;
+        }
+        return false;
     }
 };
