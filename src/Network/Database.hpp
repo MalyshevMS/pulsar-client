@@ -46,7 +46,6 @@ public:
     }
 
     void init(const Json& json) {
-        // TODO: implement this
         db["users"][username]["name"] = json["name"];
         db["users"][username]["channels"] = json["channels"];
         db["users"][username]["contacts"] = json["contacts"];
@@ -55,10 +54,15 @@ public:
     }
 
     bool is_channel_member(const std::string& channel) {
+        if (channel[0] == '@' || channel[0] == '!') return true; // It's not a channel, it's a user or a special destination
         std::vector<std::string> channels = db["users"][username]["channels"];
         for (auto& i : channels) {
             if (i == channel) return true;
         }
         return false;
+    }
+
+    void join(const std::string& channel) {
+        db["users"][username]["channels"].push_back(channel);
     }
 };

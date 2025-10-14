@@ -80,18 +80,27 @@ public:
         db.init(json);
     }
 
-    void parse_server(Json& json) {
-        if (json["msg"] == "login fail_password") {
+    void parse_server(const std::string& resp) {
+        if (resp == "login fail_password") {
             std::cerr << "Incorrect password; Disconnecting...";
             disconnect();
-        } else if (json["msg"] == "login fail_username") {
+        } else if (resp == "login fail_username") {
             std::cerr << "Incorrect login; Register new user? (y/N): ";
             std::string ans;
             std::getline(std::cin, ans);
             if (ans[0] == (char)0 || ans[0] == 'n' || ans[0] == 'N') disconnect();
             sendMessage("!register " + jsonToString(Json::array({name, password})), "!server");
-        } else if (json["msg"] == "login success") {
+        } else if (resp == "login success") {
             login_success = true;
+        }
+
+        else if (resp.substr(0, 5) == "+join") {
+            db.join(resp.substr(6, std::string::npos));
+            std::cout << "Joined channel " << resp.substr(6, std::string::npos) << std::endl;
+            std::cout << "(to " << dest << ") > " << std::flush;
+        } else if (resp.substr(0, 5) == "-join") {
+            std::cout << "Failed to join channel " << resp.substr(6, std::string::npos) << std::endl;
+            std::cout << "(to " << dest << ") > " << std::flush;
         }
     }
     
@@ -143,7 +152,7 @@ public:
                     #endif
 
                     if (json["src"] == "!server") {
-                        parse_server(json);
+                        parse_server(json["msg"]);
 
                         server_responses.push_back(json["msg"]);
                         if (server_responses.size() > PULSAR_MESSAGE_LIMIT) server_responses.pop_front();
@@ -200,6 +209,12 @@ public:
                 continue;
             }
             else if (message.substr(0, 5) == "!dest") {
+                if (!db.is_channel_member(message.substr(6, std::string::npos))) continue;
+                dest = message.substr(6, std::string::npos);
+                continue;
+            }
+            else if (message.substr(0, 5) == "!join") {
+                sendMessage("!join " + message.substr(6, std::string::npos), "!server");
                 dest = message.substr(6, std::string::npos);
                 continue;
             }
