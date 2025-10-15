@@ -150,6 +150,11 @@ public:
                         std::cout << "\nReceived: " << message << std::endl;
                         std::cout << "Decoded: " << std::string(json["msg"]) << std::endl;
                     #endif
+                    if (json["type"] == "error") {
+                        std::cerr << "An error has been occured!\nError source: " << json["src"] << "\nError text: " << json["msg"] << std::endl;
+
+                        std::cout << "(to " << dest << ") > " << std::flush;
+                    }
 
                     if (json["src"] == "!server") {
                         parse_server(json["msg"]);
