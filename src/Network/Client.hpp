@@ -10,6 +10,7 @@
 #include "../lib/jsonlib.h"
 #include "../lib/hash.h"
 #include "../Other/Datetime.hpp"
+#include "../Other/Chat.hpp"
 #include "Database.hpp"
 
 #define PULSAR_MESSAGE_LIMIT 10
@@ -100,6 +101,12 @@ public:
             std::cout << "(to " << dest << ") > " << std::flush;
         } else if (resp.substr(0, 5) == "-join") {
             std::cout << "Failed to join channel " << resp.substr(6, std::string::npos) << std::endl;
+            std::cout << "(to " << dest << ") > " << std::flush;
+        }
+
+        else if (resp.substr(0, 4) == "chat") {
+            std::vector<std::string> vec = Json::parse(resp.substr(5, std::string::npos));
+            std::cout << '\n' << Chat(vec).to_stream().rdbuf() << " ; EOT" << std::endl;
             std::cout << "(to " << dest << ") > " << std::flush;
         }
     }
@@ -230,6 +237,12 @@ public:
             }
             else if (message.substr(0, 2) == "!l") {
                 std::cout << *(--server_responses.end()) << " ; EOT\n";
+                continue;
+            }
+            else if (message.substr(0, 5) == "!chat") {
+                auto arg = message.substr(6, std::string::npos);
+                if (!db.is_channel_member(arg)) continue;
+                sendMessage("!chat " + message.substr(6, std::string::npos), "!server");
                 continue;
             }
             
