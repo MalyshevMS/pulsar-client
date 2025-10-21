@@ -1,14 +1,12 @@
-#define debug
-
+#include "defines"
 #include "Network/Client.hpp"
 
-#define PULSAR_PORT 4171
-
 int main(int argc, const char** argv) {
+    setlocale(LC_ALL, "ru_RU.UTF-8");
     std::string serverIP;
     std::string name;
     std::string password;
-    #ifndef debug
+    #ifndef PULSAR_IP_PRESET
         std::cout << "Enter server IP (127.0.0.1 for localhost): ";
         std::getline(std::cin, serverIP);
 

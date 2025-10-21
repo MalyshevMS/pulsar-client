@@ -13,6 +13,10 @@ public:
         localTime = localtime(&t_now);
     }
 
+    Datetime(time_t t) : t_now(t) {
+        localTime = localtime(&t_now);
+    }
+
     void update() {
         t_now = time(nullptr);
         localTime = localtime(&t_now);

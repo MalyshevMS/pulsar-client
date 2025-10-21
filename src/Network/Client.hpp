@@ -13,10 +13,6 @@
 #include "../Other/Chat.hpp"
 #include "Database.hpp"
 
-#define PULSAR_MESSAGE_LIMIT 10
-#define PULSAR_MAX_RESPONSE_TIME 5000
-// #define PULSAR_DEBUG
-
 class Client {
 private:
     sf::TcpSocket socket;
