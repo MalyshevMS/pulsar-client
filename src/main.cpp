@@ -1,8 +1,15 @@
 #include "defines"
 #include "Network/Client.hpp"
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 int main(int argc, const char** argv) {
-    setlocale(LC_ALL, "ru_RU.UTF-8");
+#ifdef _WIN32
+    SetConsoleCP(65001); // Russian UTF-8 support
+    SetConsoleOutputCP(65001);
+#endif
     std::string serverIP;
     std::string name;
     std::string password;

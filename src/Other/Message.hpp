@@ -1,4 +1,3 @@
-#pragma voice
 #pragma once
 
 #include "../lib/jsonlib.h"
