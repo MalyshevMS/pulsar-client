@@ -11,6 +11,7 @@
 #include "../lib/hash.h"
 #include "../Other/Datetime.hpp"
 #include "../Other/Chat.hpp"
+#include "../API/PulsarAPI.hpp"
 #include "Database.hpp"
 
 class Client {
@@ -26,35 +27,34 @@ private:
     std::string password;
     std::list<std::string> server_responses;
     Database db;
+    PulsarAPI api;
 public:
     Client(const std::string& name, const std::string& password_unhashed, const std::string& ip, unsigned short p)
-     : name(name), serverIP(ip), port(p), connected(false), db(name) {
+     : name(name), serverIP(ip), port(p), connected(false), db(name), api(socket, name) {
         if (password_unhashed.size() > 0) password = hash(password_unhashed);
         else password = "";
     }
     
     bool connectToServer() {
-        sf::Socket::Status status = socket.connect(*sf::IpAddress::resolve(serverIP), port, sf::seconds(5));
+        sf::Socket::Status status = socket.connect(*sf::IpAddress::resolve(serverIP), port, sf::milliseconds(PULSAR_TIMEOUT_MS));
         if (status != sf::Socket::Status::Done) {
             std::cout << "Error: Could not connect to server " << serverIP << ":" << port << std::endl;
             std::cout << "Make sure server is running and accessible" << std::endl;
             return false;
         }
         connected = true;
-        sendMessage("!login " + jsonToString(Json::array({name, password})), "!server");
+        api.login(password);
         return true;
     }
     
     void disconnect() {
         connected = false;
-        socket.disconnect();
-        std::cout << "Press any key to continue...";
-        std::cin.get();
+        api.disconnect();
         exit(0);
     }
 
     void requestDb() {
-        sendMessage("!db user " + name, "!server");
+        api.sendMessage("!db user " + name, "!server");
         std::string response;
         Json json;
         int32_t wait_time = 0;
@@ -67,7 +67,7 @@ public:
             sf::sleep(sf::milliseconds(1));
             wait_time++;
 
-            if (wait_time > PULSAR_MAX_RESPONSE_TIME) {
+            if (wait_time > PULSAR_TIMEOUT_MS) {
                 std::cerr << "Database request took too long; Disconecting..." << std::endl;
                 disconnect();
                 break;
@@ -86,7 +86,7 @@ public:
             std::string ans;
             std::getline(std::cin, ans);
             if (ans[0] == (char)0 || ans[0] == 'n' || ans[0] == 'N') disconnect();
-            sendMessage("!register " + jsonToString(Json::array({name, password})), "!server");
+            api.registerUser(password);
         } else if (resp == "login success") {
             login_success = true;
         }
@@ -104,38 +104,6 @@ public:
             std::vector<std::string> vec = Json::parse(resp.substr(5, std::string::npos));
             std::cout << '\n' << Chat(vec).to_stream().rdbuf() << " ; EOT" << std::endl;
             std::cout << "(to " << dest << ") > " << std::flush;
-        }
-    }
-    
-    void sendMessage(const std::string& message, const std::string& dest) {
-        if (!connected) return;
-
-        /*
-            Message format (JSON):
-            {
-                "type": "message",
-                "time": current time (integer, seconds since epoch),
-                "src": "this client username",
-                "dst": "destination (channel or user)"
-                "msg": "your message text"
-            }
-        */
-
-        auto json = Json({
-            {"type", "message"},
-            {"time", Datetime::now().toTime()},
-            {"src", name},
-            {"dst", dest},
-            {"msg", message}
-        });
-
-        std::string msg = jsonToString(json);
-        sf::Packet packet;
-        packet << msg;
-        
-        if (socket.send(packet) != sf::Socket::Status::Done) {
-            std::cout << "Error sending message" << std::endl;
-            disconnect();
         }
     }
     
@@ -222,7 +190,7 @@ public:
                 continue;
             }
             else if (message.substr(0, 5) == "!join") {
-                sendMessage("!join " + message.substr(6, std::string::npos), "!server");
+                api.joinChannel(message.substr(6, std::string::npos));
                 dest = message.substr(6, std::string::npos);
                 continue;
             }
@@ -238,12 +206,12 @@ public:
             else if (message.substr(0, 5) == "!chat") {
                 auto arg = message.substr(6, std::string::npos);
                 if (!db.is_channel_member(arg)) continue;
-                sendMessage("!chat " + message.substr(6, std::string::npos), "!server");
+                api.sendMessage("!chat " + message.substr(6, std::string::npos), "!server");
                 continue;
             }
             
             if (!message.empty()) {
-                sendMessage(message, dest);
+                api.sendMessage(message, dest);
             }
         }
     }

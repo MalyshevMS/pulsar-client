@@ -1,6 +1,7 @@
 // #define PULSAR_DEBUG
 #define PULSAR
-#define PULSAR_API ...
+#define PULSAR_VERSION "v0.0.1"
+#define PULSAR_API [[pulsar]]
 #define PULSAR_CHATS_DIR "res/chats"
 #define PULSAR_DATE_SIZE 10
 #define PULSAR_USERNAME_SIZE 24
@@ -11,5 +12,5 @@
 #define PULSAR_EOT '\x04'
 #define PULSAR_PORT 4171
 #define PULSAR_MESSAGE_LIMIT 10
-#define PULSAR_MAX_RESPONSE_TIME 5000
+#define PULSAR_TIMEOUT_MS 5000
 #define PULSAR_IP_PRESET "127.0.0.1"

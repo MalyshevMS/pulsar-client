@@ -1,4 +1,5 @@
 #include "defines"
+#include "API/PulsarAPI.hpp"
 #include "Network/Client.hpp"
 
 #ifdef _WIN32

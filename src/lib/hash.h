@@ -1,7 +1,10 @@
+#pragma once
+
 #include <string>
 #include <bitset>
 #include <iomanip>
 #include <sstream>
+#include "../defines"
 
 std::string hasher(const std::string& input) {
     std::hash<std::string> hasher;

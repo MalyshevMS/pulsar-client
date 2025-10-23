@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../lib/jsonlib.h"
+#include "../defines"
 
 class Message {
 private:
