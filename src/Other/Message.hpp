@@ -19,8 +19,8 @@ public:
 
 static Message parse_line(const std::string& line) {
     auto l_time = line.substr(0, PULSAR_DATE_SIZE);
-    auto l_src = line.substr(10, PULSAR_USERNAME_SIZE);
-    auto l_msg = line.substr(34, PULSAR_MESSAGE_SIZE);
+    auto l_src = line.substr(PULSAR_DATE_SIZE, PULSAR_USERNAME_SIZE);
+    auto l_msg = line.substr(PULSAR_DATE_SIZE + PULSAR_USERNAME_SIZE, PULSAR_MESSAGE_SIZE);
 
     return Message(atoll(l_time.c_str()), l_src, l_msg);
 }
