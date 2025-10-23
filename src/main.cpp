@@ -14,14 +14,14 @@ int main(int argc, const char** argv) {
     std::string name;
     std::string password;
     #ifndef PULSAR_IP_PRESET
-        std::cout << "Enter server IP (127.0.0.1 for localhost): ";
+        std::cout << "Enter server IP (default " << PULSAR_IP_PRESET << "): ";
         std::getline(std::cin, serverIP);
 
         if (serverIP.empty()) {
-            serverIP = "127.0.0.1";
+            serverIP = PULSAR_IP_PRESET;
         }
     #else
-        serverIP = "127.0.0.1";
+        serverIP = PULSAR_IP_PRESET;
     #endif
 
     if (argc <= 1) {
