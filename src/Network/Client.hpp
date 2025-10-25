@@ -115,6 +115,7 @@ public:
             if (msg.get_src() == "!server") {
                 parse_server(msg.get_msg());
 
+                api.storeServerResponse(msg.get_msg());
                 server_responses.push_back(msg.get_msg());
                 if (server_responses.size() > PULSAR_MESSAGE_LIMIT) server_responses.pop_front();
             } else if (db.is_channel_member(msg.get_dst()) || msg.get_dst() == name) {
@@ -182,12 +183,19 @@ public:
                 api.sendMessage("!chat " + message.substr(6, std::string::npos), "!server");
                 continue;
             }
+            else if (message == "!testrequest") {
+                api.sendMessage("!test", "!server");
+                std::cout << "Test request sent. Waiting for response..." << std::endl;
+                std::cout << api.waitForServerResponse("test") << std::endl;
+                continue;
+            }
             else if (message == "!help") {
                 std::cout << "Available commands:\n"
                              "!exit                         - Disconnect from server and exit client\n"
                              "!dest <channel/user>          - Set destination channel for messages\n"
                              "!join <channel>               - Join a channel\n"
                              "!chat <channel/user>          - Request chat history for a channel or user\n"
+                             "!testrequest                  - Send test request to server\n"
                              "!help                         - Show this help message\n";
                 continue;
             }

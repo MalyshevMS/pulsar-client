@@ -17,6 +17,7 @@ class PulsarAPI {
 private:
     sf::TcpSocket& socket;
     std::string name;
+    std::list<std::string> server_responses;
 public:
     PulsarAPI(sf::TcpSocket& sock, const std::string& username) : socket(sock), name(username) {}
     
@@ -91,6 +92,38 @@ public:
             std::cerr << "An error has been occured!\nError source: " << json["src"] << "\nError text: " << json["msg"] << std::endl;
             return Message(0, "!server", name, "error: " + std::string(json["msg"]));
         }
+
         return Message(json["time"], json["src"], json["dst"], json["msg"]);
+    }
+
+    void storeServerResponse(const std::string& response) {
+        server_responses.push_back(response);
+        if (server_responses.size() > PULSAR_MESSAGE_LIMIT) server_responses.pop_front();
+    }
+
+    std::string waitForServerResponse(const std::string& expectedType, int32_t timeout_ms = PULSAR_TIMEOUT_MS) {
+        int32_t wait_time = 0;
+        while (wait_time < timeout_ms) {
+            if (!server_responses.empty()) {
+                std::string response = *(--server_responses.end());
+                try {
+                    auto json = Json::parse(response);
+                    if (json.contains("type") && json["type"] == expectedType) {
+                        return response;
+                    }
+                } catch(const std::exception& e) {
+                    if (response.find(expectedType) != std::string::npos) {
+                        return response;
+                    }
+                }
+                #ifdef PULSAR_DEBUG
+                    std::cerr << "Type not matched: " << response << std::endl;
+                #endif
+            }
+            sf::sleep(sf::milliseconds(1));
+            wait_time++;
+        }
+        std::cout << "Timeout waiting for server response" << std::endl;
+        return "";
     }
 };
