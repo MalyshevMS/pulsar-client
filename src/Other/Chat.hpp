@@ -8,10 +8,10 @@ class Chat {
 private:
     std::vector<Message> messages;
 public:
-    Chat(const std::vector<std::string>& messages_vec) {
+    Chat(const std::string& name, const std::vector<std::string>& messages_vec) {
         for (auto& line : messages_vec) {
             if (line.empty() || line == "\n") continue;
-            messages.push_back(parse_line(line));
+            messages.push_back(parse_line(line, name));
         }
     }
 

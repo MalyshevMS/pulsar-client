@@ -74,4 +74,23 @@ public:
     void registerUser(const std::string& password) {
         sendMessage("!register " + jsonToString(Json::array({name, password})), "!server");
     }
+
+    Message receiveLastMessage() {
+        sf::Packet packet;
+        if (socket.receive(packet) != sf::Socket::Status::Done) {
+            throw std::runtime_error("Error receiving message");
+        }
+
+        std::string msg;
+        if (!(packet >> msg)) {
+            throw std::runtime_error("Error extracting message from packet");
+        }
+
+        auto json = Json::parse(msg);
+        if (json["type"] == "error") {
+            std::cerr << "An error has been occured!\nError source: " << json["src"] << "\nError text: " << json["msg"] << std::endl;
+            return Message(0, "!server", name, "error: " + std::string(json["msg"]));
+        }
+        return Message(json["time"], json["src"], json["dst"], json["msg"]);
+    }
 };

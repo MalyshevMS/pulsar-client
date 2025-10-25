@@ -101,52 +101,25 @@ public:
         }
 
         else if (resp.substr(0, 4) == "chat") {
-            std::vector<std::string> vec = Json::parse(resp.substr(5, std::string::npos));
-            std::cout << '\n' << Chat(vec).to_stream().rdbuf() << " ; EOT" << std::endl;
+            auto json = Json::parse(resp.substr(5, std::string::npos));
+            std::vector<std::string> vec = json["chat"];
+            std::cout << '\n' << Chat(json["name"], vec).to_stream().rdbuf() << " ; EOT" << std::endl;
             std::cout << "(to " << dest << ") > " << std::flush;
         }
     }
     
     void receiveMessages() {
         while (connected) {
-            sf::Packet packet;
-            sf::Socket::Status status = socket.receive(packet);
-            
-            if (status == sf::Socket::Status::Done) {
-                std::string message;
-                if (packet >> message) {
-                    Json json = Json::parse(message);
+            auto msg = api.receiveLastMessage();
 
-                    #ifdef PULSAR_DEBUG
-                        std::cout << "\nReceived: " << message << std::endl;
-                        std::cout << "Decoded: " << std::string(json["msg"]) << std::endl;
-                    #endif
-                    if (json["type"] == "error") {
-                        std::cerr << "An error has been occured!\nError source: " << json["src"] << "\nError text: " << json["msg"] << std::endl;
+            if (msg.get_src() == "!server") {
+                parse_server(msg.get_msg());
 
-                        std::cout << "(to " << dest << ") > " << std::flush;
-                    }
-
-                    if (json["src"] == "!server") {
-                        parse_server(json["msg"]);
-
-                        server_responses.push_back(json["msg"]);
-                        if (server_responses.size() > PULSAR_MESSAGE_LIMIT) server_responses.pop_front();
-                    } else if (db.is_channel_member(json["dst"]) || json["dst"] == name) {
-                        #ifndef PULSAR_DEBUG
-                            std::cout << "[From "  << std::string(json["src"]) << " to " << std::string(json["dst"]) << "]: " << std::string(json["msg"]) << std::endl;
-                            std::cout << "(to " << dest << ") > " << std::flush;
-                        #endif
-                    }
-                }
-            } else if (status == sf::Socket::Status::Disconnected) {
-                std::cout << "\nDisconnected from server" << std::endl;
-                disconnect();
-                break;
-            } else if (status == sf::Socket::Status::Error) {
-                std::cout << "\nNetwork error occurred" << std::endl;
-                disconnect();
-                break;
+                server_responses.push_back(msg.get_msg());
+                if (server_responses.size() > PULSAR_MESSAGE_LIMIT) server_responses.pop_front();
+            } else if (db.is_channel_member(msg.get_dst()) || msg.get_dst() == name) {
+                std::cout << '\n' << "[time: " << msg.get_time() << " | from: " << msg.get_src() << " to: " << msg.get_dst() << "]: " << msg.get_msg() << std::endl;
+                std::cout << "(to " << dest << ") > " << std::flush;
             }
             
             sf::sleep(sf::milliseconds(100));
@@ -162,7 +135,7 @@ public:
         while (!login_success) sf::sleep(sf::milliseconds(1));
 
         std::cout << "Connected to server! Type your messages below." << std::endl;
-        std::cout << "Type '!exit' to quit." << std::endl;
+        std::cout << "Type '!exit' to quit. Type '!help' for commands." << std::endl;
         std::cout << "------------------------" << std::endl;
 
         requestDb();
@@ -207,6 +180,15 @@ public:
                 auto arg = message.substr(6, std::string::npos);
                 if (!db.is_channel_member(arg)) continue;
                 api.sendMessage("!chat " + message.substr(6, std::string::npos), "!server");
+                continue;
+            }
+            else if (message == "!help") {
+                std::cout << "Available commands:\n"
+                             "!exit                         - Disconnect from server and exit client\n"
+                             "!dest <channel/user>          - Set destination channel for messages\n"
+                             "!join <channel>               - Join a channel\n"
+                             "!chat <channel/user>          - Request chat history for a channel or user\n"
+                             "!help                         - Show this help message\n";
                 continue;
             }
             
