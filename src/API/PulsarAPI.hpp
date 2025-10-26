@@ -68,7 +68,12 @@ public:
     }
 
     void joinChannel(const std::string& channel) {
-        sendMessage("!join " + channel, "!server");
+        auto response = request("join", channel);
+        if (response.find("+join") != std::string::npos && response.find(channel) != std::string::npos) {
+            std::cout << "Joined channel " << channel << std::endl;
+        } else {
+            std::cout << "Failed to join channel " << channel << std::endl;
+        }
     }
 
     void leaveChannel(const std::string& channel) {

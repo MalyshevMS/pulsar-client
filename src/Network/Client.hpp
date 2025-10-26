@@ -77,24 +77,16 @@ public:
     }
 
     void parse_server(const std::string& resp) {
-        // if (resp == "login fail_password") {
-        //     std::cerr << "Incorrect password; Disconnecting...";
-        //     disconnect();
-        // } else if (resp == "login fail_username") {
-        // } else if (resp == "login success") {
-        //     login_success = true;
+        // if (resp.substr(0, 5) == "+join") {
+        //     db.join(resp.substr(6, std::string::npos));
+        //     std::cout << "Joined channel " << resp.substr(6, std::string::npos) << std::endl;
+        //     std::cout << "(to " << dest << ") > " << std::flush;
+        // } else if (resp.substr(0, 5) == "-join") {
+        //     std::cout << "Failed to join channel " << resp.substr(6, std::string::npos) << std::endl;
+        //     std::cout << "(to " << dest << ") > " << std::flush;
         // }
 
-        if (resp.substr(0, 5) == "+join") {
-            db.join(resp.substr(6, std::string::npos));
-            std::cout << "Joined channel " << resp.substr(6, std::string::npos) << std::endl;
-            std::cout << "(to " << dest << ") > " << std::flush;
-        } else if (resp.substr(0, 5) == "-join") {
-            std::cout << "Failed to join channel " << resp.substr(6, std::string::npos) << std::endl;
-            std::cout << "(to " << dest << ") > " << std::flush;
-        }
-
-        else if (resp.substr(0, 4) == "chat") {
+        if (resp.substr(0, 4) == "chat") {
             auto json = Json::parse(resp.substr(5, std::string::npos));
             std::vector<std::string> vec = json["chat"];
             std::cout << '\n' << Chat(json["name"], vec).to_stream().rdbuf() << " ; EOT" << std::endl;
