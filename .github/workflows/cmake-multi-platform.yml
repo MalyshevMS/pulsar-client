@@ -47,10 +47,23 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install SFML dependencies on Ubuntu
-      # Install all sfml dependencies
+    - name: Install SFML and all dependencies on Ubuntu
       if: startsWith(matrix.os, 'ubuntu')
-      run: sudo apt-get update && sudo apt-get install -y libsfml-dev
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libsfml-dev \
+          build-essential \
+          libxrandr-dev \
+          libxcursor-dev \
+          libxi-dev \
+          libfreetype6-dev \
+          libopenal-dev \
+          libsndfile1-dev \
+          libjpeg-dev \
+          libflac-dev \
+          libogg-dev \
+          libvorbis-dev
 
     - name: Set reusable strings
       # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
