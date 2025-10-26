@@ -19,6 +19,13 @@ private:
     std::string name;
     std::list<std::string> server_responses;
 public:
+    enum LoginResult {
+        Success,
+        Fail_Username,
+        Fail_Password,
+        Fail_Unknown
+    };
+
     PulsarAPI(sf::TcpSocket& sock, const std::string& username) : socket(sock), name(username) {}
     
     std::string getName() const { return name; }
@@ -68,12 +75,32 @@ public:
         sendMessage("!leave " + channel, "!server");
     }
 
-    void login(const std::string& password) {
-        sendMessage("!login " + jsonToString(Json::array({name, password})), "!server");
+    LoginResult login(const std::string& password) {
+        auto response = request("login", jsonToString(Json::array({name, password})));
+
+        if (response.find("login success") != std::string::npos) {
+            return LoginResult::Success;
+        } else if (response.find("login fail_username") != std::string::npos) {
+            std::cout << "Login failed: Incorrect username" << std::endl;
+            return LoginResult::Fail_Username;
+        } else if (response.find("login fail_password") != std::string::npos) {
+            std::cout << "Login failed: Incorrect password" << std::endl;
+            return LoginResult::Fail_Password;
+        } else {
+            std::cout << "Login failed: Unknown error" << std::endl;
+            return LoginResult::Fail_Unknown;
+        }
     }
 
-    void registerUser(const std::string& password) {
-        sendMessage("!register " + jsonToString(Json::array({name, password})), "!server");
+    LoginResult registerUser(const std::string& password) {
+        auto response = request("register", jsonToString(Json::array({name, password})));
+
+        if (response.find("register success") != std::string::npos) {
+            return LoginResult::Success;
+        } else {
+            std::cout << "Login failed: Unknown error" << std::endl;
+            return LoginResult::Fail_Unknown;
+        }
     }
 
     Message receiveLastMessage() {
@@ -125,5 +152,10 @@ public:
         }
         std::cout << "Timeout waiting for server response" << std::endl;
         return "";
+    }
+
+    std::string request(const std::string& request_type, const std::string& args) {
+        sendMessage('!' + request_type + ' ' + args, "!server");
+        return waitForServerResponse(request_type);
     }
 };

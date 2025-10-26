@@ -43,7 +43,6 @@ public:
             return false;
         }
         connected = true;
-        api.login(password);
         return true;
     }
     
@@ -78,20 +77,15 @@ public:
     }
 
     void parse_server(const std::string& resp) {
-        if (resp == "login fail_password") {
-            std::cerr << "Incorrect password; Disconnecting...";
-            disconnect();
-        } else if (resp == "login fail_username") {
-            std::cerr << "Incorrect login; Register new user? (y/N): ";
-            std::string ans;
-            std::getline(std::cin, ans);
-            if (ans[0] == (char)0 || ans[0] == 'n' || ans[0] == 'N') disconnect();
-            api.registerUser(password);
-        } else if (resp == "login success") {
-            login_success = true;
-        }
+        // if (resp == "login fail_password") {
+        //     std::cerr << "Incorrect password; Disconnecting...";
+        //     disconnect();
+        // } else if (resp == "login fail_username") {
+        // } else if (resp == "login success") {
+        //     login_success = true;
+        // }
 
-        else if (resp.substr(0, 5) == "+join") {
+        if (resp.substr(0, 5) == "+join") {
             db.join(resp.substr(6, std::string::npos));
             std::cout << "Joined channel " << resp.substr(6, std::string::npos) << std::endl;
             std::cout << "(to " << dest << ") > " << std::flush;
@@ -118,7 +112,7 @@ public:
                 api.storeServerResponse(msg.get_msg());
                 server_responses.push_back(msg.get_msg());
                 if (server_responses.size() > PULSAR_MESSAGE_LIMIT) server_responses.pop_front();
-            } else if (db.is_channel_member(msg.get_dst()) || msg.get_dst() == name) {
+            } else if ((db.is_channel_member(msg.get_dst()) || msg.get_dst() == name) && login_success) {
                 std::cout << '\n' << "[time: " << msg.get_time() << " | from: " << msg.get_src() << " to: " << msg.get_dst() << "]: " << msg.get_msg() << std::endl;
                 std::cout << "(to " << dest << ") > " << std::flush;
             }
@@ -133,7 +127,21 @@ public:
         }
         
         receiveThread = std::thread(&Client::receiveMessages, this);
-        while (!login_success) sf::sleep(sf::milliseconds(1));
+        auto login_status = api.login(password);
+        if (login_status == PulsarAPI::LoginResult::Fail_Username) {
+            std::cout << "Register new user? (y/N): ";
+            std::string ans;
+            std::getline(std::cin, ans);
+            if (ans[0] == (char)0 || ans[0] == 'n' || ans[0] == 'N') disconnect();
+            if (api.registerUser(password) != PulsarAPI::LoginResult::Success) {
+                std::cout << "Registration failed; Disconnecting..." << std::endl;
+                disconnect();
+            }
+        } else if (login_status != PulsarAPI::LoginResult::Success) {
+            std::cout << "Disconnecting..." << std::endl;
+            disconnect();
+        }
+        login_success = true;
 
         std::cout << "Connected to server! Type your messages below." << std::endl;
         std::cout << "Type '!exit' to quit. Type '!help' for commands." << std::endl;
