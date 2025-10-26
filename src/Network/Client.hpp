@@ -86,12 +86,12 @@ public:
         //     std::cout << "(to " << dest << ") > " << std::flush;
         // }
 
-        if (resp.substr(0, 4) == "chat") {
-            auto json = Json::parse(resp.substr(5, std::string::npos));
-            std::vector<std::string> vec = json["chat"];
-            std::cout << '\n' << Chat(json["name"], vec).to_stream().rdbuf() << " ; EOT" << std::endl;
-            std::cout << "(to " << dest << ") > " << std::flush;
-        }
+        // if (resp.substr(0, 4) == "chat") {
+        //     auto json = Json::parse(resp.substr(5, std::string::npos));
+        //     std::vector<std::string> vec = json["chat"];
+        //     std::cout << '\n' << Chat(json["name"], vec).to_stream().rdbuf() << " ; EOT" << std::endl;
+        //     std::cout << "(to " << dest << ") > " << std::flush;
+        // }
     }
     
     void receiveMessages() {
@@ -163,12 +163,12 @@ public:
                 dest = message.substr(6, std::string::npos);
                 continue;
             }
-            else if (message.substr(0, 5) == "!join") {
+            else if (message.substr(0, 5) == "!join") { // TODO: check success/fail and update db
                 api.joinChannel(message.substr(6, std::string::npos));
                 dest = message.substr(6, std::string::npos);
                 continue;
             }
-            else if (message.substr(0, 6) == "!leave") {
+            else if (message.substr(0, 6) == "!leave") { // TODO: check success/fail and update db
                 api.leaveChannel(message.substr(7, std::string::npos));
                 dest = ":all";
                 continue;
@@ -185,13 +185,12 @@ public:
             else if (message.substr(0, 5) == "!chat") {
                 auto arg = message.substr(6, std::string::npos);
                 if (!db.is_channel_member(arg)) continue;
-                api.sendMessage("!chat " + message.substr(6, std::string::npos), "!server");
+                std::cout << '\n' << api.getChat(arg).to_stream().rdbuf() << " ; EOT" << std::endl;
                 continue;
             }
             else if (message == "!testrequest") {
-                api.sendMessage("!test", "!server");
-                std::cout << "Test request sent. Waiting for response..." << std::endl;
-                std::cout << api.waitForServerResponse("test") << std::endl;
+                std::cout << "Sending test request..." << std::endl;
+                std::cout << api.request("test", name) << std::endl;
                 continue;
             }
             else if (message == "!help") {

@@ -18,6 +18,32 @@ private:
     sf::TcpSocket& socket;
     std::string name;
     std::list<std::string> server_responses;
+
+    std::string waitForServerResponse(const std::string& expectedType, const std::string& additional = "", int32_t timeout_ms = PULSAR_TIMEOUT_MS) {
+        int32_t wait_time = 0;
+        while (wait_time < timeout_ms) {
+            if (!server_responses.empty()) {
+                std::string response = *(--server_responses.end());
+                try {
+                    auto json = Json::parse(response);
+                    if (json.contains("type") && json["type"] == expectedType) {
+                        return response;
+                    }
+                } catch(const std::exception& e) {
+                    if (response.find(expectedType) != std::string::npos && response.find(additional) != std::string::npos) {
+                        return response;
+                    }
+                }
+                #ifdef PULSAR_DEBUG
+                    std::cerr << "Type not matched: " << response << std::endl;
+                #endif
+            }
+            sf::sleep(sf::milliseconds(1));
+            wait_time++;
+        }
+        std::cout << "Timeout waiting for server response" << std::endl;
+        return "";
+    }
 public:
     enum LoginResult {
         Success,
@@ -67,7 +93,7 @@ public:
         }
     }
 
-    void joinChannel(const std::string& channel) {
+    void joinChannel(const std::string& channel) { // TODO: return success/fail
         auto response = request("join", channel);
         if (response.find("+join") != std::string::npos && response.find(channel) != std::string::npos) {
             std::cout << "Joined channel " << channel << std::endl;
@@ -76,7 +102,7 @@ public:
         }
     }
 
-    void leaveChannel(const std::string& channel) {
+    void leaveChannel(const std::string& channel) { // TODO: return success/fail
         auto response = request("leave", channel);
         if (response.find("+leave") != std::string::npos && response.find(channel) != std::string::npos) {
             std::cout << "Left channel " << channel << std::endl;
@@ -113,6 +139,13 @@ public:
         }
     }
 
+    Chat getChat(const std::string& channel) {
+        auto response = request("chat", channel, channel);
+        auto json = Json::parse(response.substr(5, std::string::npos));
+        std::vector<std::string> vec = json["chat"];
+        return Chat(json["name"], vec);
+    }
+
     Message receiveLastMessage() {
         sf::Packet packet;
         if (socket.receive(packet) != sf::Socket::Status::Done) {
@@ -126,7 +159,7 @@ public:
 
         auto json = Json::parse(msg);
         if (json["type"] == "error") {
-            std::cerr << "An error has been occured!\nError source: " << json["src"] << "\nError text: " << json["msg"] << std::endl;
+            std::cerr << "\nAn error has been occured!\nError source: " << json["src"] << "\nError text: " << json["msg"] << std::endl;
             return Message(0, "!server", name, "error: " + std::string(json["msg"]));
         }
 
@@ -138,34 +171,8 @@ public:
         if (server_responses.size() > PULSAR_MESSAGE_LIMIT) server_responses.pop_front();
     }
 
-    std::string waitForServerResponse(const std::string& expectedType, int32_t timeout_ms = PULSAR_TIMEOUT_MS) {
-        int32_t wait_time = 0;
-        while (wait_time < timeout_ms) {
-            if (!server_responses.empty()) {
-                std::string response = *(--server_responses.end());
-                try {
-                    auto json = Json::parse(response);
-                    if (json.contains("type") && json["type"] == expectedType) {
-                        return response;
-                    }
-                } catch(const std::exception& e) {
-                    if (response.find(expectedType) != std::string::npos) {
-                        return response;
-                    }
-                }
-                #ifdef PULSAR_DEBUG
-                    std::cerr << "Type not matched: " << response << std::endl;
-                #endif
-            }
-            sf::sleep(sf::milliseconds(1));
-            wait_time++;
-        }
-        std::cout << "Timeout waiting for server response" << std::endl;
-        return "";
-    }
-
-    std::string request(const std::string& request_type, const std::string& args) {
+    std::string request(const std::string& request_type, const std::string& args, const std::string& additional = "") {
         sendMessage('!' + request_type + ' ' + args, "!server");
-        return waitForServerResponse(request_type);
+        return waitForServerResponse(request_type, additional);
     }
 };
