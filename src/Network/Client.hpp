@@ -168,6 +168,11 @@ public:
                 dest = message.substr(6, std::string::npos);
                 continue;
             }
+            else if (message.substr(0, 6) == "!leave") {
+                api.leaveChannel(message.substr(7, std::string::npos));
+                dest = ":all";
+                continue;
+            }
             else if (message.substr(0, 5) == "!msgs") {
                 for (auto& i : server_responses) std::cout << i << " ; EOT\n";
                 std::cout << std::flush;

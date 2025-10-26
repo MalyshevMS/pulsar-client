@@ -77,7 +77,12 @@ public:
     }
 
     void leaveChannel(const std::string& channel) {
-        sendMessage("!leave " + channel, "!server");
+        auto response = request("leave", channel);
+        if (response.find("+leave") != std::string::npos && response.find(channel) != std::string::npos) {
+            std::cout << "Left channel " << channel << std::endl;
+        } else {
+            std::cout << "Failed to leave channel " << channel << std::endl;
+        }
     }
 
     LoginResult login(const std::string& password) {
