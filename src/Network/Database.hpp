@@ -65,4 +65,14 @@ public:
     void join(const std::string& channel) {
         db["users"][username]["channels"].push_back(channel);
     }
+
+    void leave(const std::string& channel) {
+        std::vector<std::string> channels = db["users"][username]["channels"];
+        db["users"][username]["channels"] = Json::array();
+        for (auto& i : channels) {
+            if (i != channel) {
+                db["users"][username]["channels"].push_back(i);
+            }
+        }
+    }
 };

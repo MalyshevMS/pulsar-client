@@ -93,21 +93,25 @@ public:
         }
     }
 
-    void joinChannel(const std::string& channel) { // TODO: return success/fail
-        auto response = request("join", channel);
+    bool joinChannel(const std::string& channel) {
+        auto response = request("join", channel, channel);
         if (response.find("+join") != std::string::npos && response.find(channel) != std::string::npos) {
             std::cout << "Joined channel " << channel << std::endl;
+            return true;
         } else {
             std::cout << "Failed to join channel " << channel << std::endl;
+            return false;
         }
     }
 
-    void leaveChannel(const std::string& channel) { // TODO: return success/fail
-        auto response = request("leave", channel);
+    bool leaveChannel(const std::string& channel) {
+        auto response = request("leave", channel, channel);
         if (response.find("+leave") != std::string::npos && response.find(channel) != std::string::npos) {
             std::cout << "Left channel " << channel << std::endl;
+            return true;
         } else {
             std::cout << "Failed to leave channel " << channel << std::endl;
+            return false;
         }
     }
 

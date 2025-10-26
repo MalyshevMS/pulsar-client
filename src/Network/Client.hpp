@@ -163,13 +163,15 @@ public:
                 dest = message.substr(6, std::string::npos);
                 continue;
             }
-            else if (message.substr(0, 5) == "!join") { // TODO: check success/fail and update db
-                api.joinChannel(message.substr(6, std::string::npos));
+            else if (message.substr(0, 5) == "!join") {
+                if (api.joinChannel(message.substr(6, std::string::npos))) 
+                    db.join(message.substr(6, std::string::npos));
                 dest = message.substr(6, std::string::npos);
                 continue;
             }
-            else if (message.substr(0, 6) == "!leave") { // TODO: check success/fail and update db
-                api.leaveChannel(message.substr(7, std::string::npos));
+            else if (message.substr(0, 6) == "!leave") {
+                if (api.leaveChannel(message.substr(7, std::string::npos))) 
+                    db.leave(message.substr(7, std::string::npos)); 
                 dest = ":all";
                 continue;
             }
