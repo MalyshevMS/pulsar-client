@@ -33,6 +33,9 @@ int main(int argc, const char** argv) {
     }
     std::cout << "Enter password (press ENTER if none was provided): ";
     std::getline(std::cin, password);
+
+    if (name[0] != '@') name = "@" + name;
+    for (auto& c : name) c = tolower(c);
     
     Client client(name, password, serverIP, PULSAR_PORT);
     client.run();

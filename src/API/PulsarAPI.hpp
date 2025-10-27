@@ -150,6 +150,14 @@ public:
         return Chat(json["name"], vec);
     }
 
+    Database requestDb() {
+        Database db(name);
+        auto response = request("db user", name);
+        auto json = Json::parse(response.substr(8, std::string::npos));
+        db.init(json);
+        return db;
+    }
+
     Message receiveLastMessage() {
         sf::Packet packet;
         if (socket.receive(packet) != sf::Socket::Status::Done) {
