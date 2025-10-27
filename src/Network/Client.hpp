@@ -25,12 +25,10 @@ private:
     std::string dest;
     std::string name;
     std::string password;
-    std::list<std::string> server_responses;
-    Database db;
     PulsarAPI api;
 public:
     Client(const std::string& name, const std::string& password_unhashed, const std::string& ip, unsigned short p)
-     : name(name), serverIP(ip), port(p), connected(false), db(name), api(socket, name) {
+     : name(name), serverIP(ip), port(p), connected(false), api(socket, name) {
         if (password_unhashed.size() > 0) password = hash(password_unhashed);
         else password = "";
     }
@@ -51,62 +49,16 @@ public:
         api.disconnect();
         exit(0);
     }
-
-    void requestDb() {
-        api.sendMessage("!db user " + name, "!server");
-        std::string response;
-        Json json;
-        int32_t wait_time = 0;
-        while (true) {
-            response = *(--server_responses.end());
-            try {
-                json = Json::parse(response);
-                if (json.contains("channels")) break;
-            } catch(const std::exception& e){}
-            sf::sleep(sf::milliseconds(1));
-            wait_time++;
-
-            if (wait_time > PULSAR_TIMEOUT_MS) {
-                std::cerr << "Database request took too long; Disconecting..." << std::endl;
-                disconnect();
-                break;
-            }
-        }
-
-        db.init(json);
-    }
-
-    void parse_server(const std::string& resp) {
-        // if (resp.substr(0, 5) == "+join") {
-        //     db.join(resp.substr(6, std::string::npos));
-        //     std::cout << "Joined channel " << resp.substr(6, std::string::npos) << std::endl;
-        //     std::cout << "(to " << dest << ") > " << std::flush;
-        // } else if (resp.substr(0, 5) == "-join") {
-        //     std::cout << "Failed to join channel " << resp.substr(6, std::string::npos) << std::endl;
-        //     std::cout << "(to " << dest << ") > " << std::flush;
-        // }
-
-        // if (resp.substr(0, 4) == "chat") {
-        //     auto json = Json::parse(resp.substr(5, std::string::npos));
-        //     std::vector<std::string> vec = json["chat"];
-        //     std::cout << '\n' << Chat(json["name"], vec).to_stream().rdbuf() << " ; EOT" << std::endl;
-        //     std::cout << "(to " << dest << ") > " << std::flush;
-        // }
-    }
     
     void receiveMessages() {
         while (connected) {
             auto msg = api.receiveLastMessage();
 
             if (msg.get_src() == "!server") {
-                parse_server(msg.get_msg());
-
                 api.storeServerResponse(msg.get_msg());
-                server_responses.push_back(msg.get_msg());
-                if (server_responses.size() > PULSAR_MESSAGE_LIMIT) server_responses.pop_front();
-            } else if ((db.is_channel_member(msg.get_dst()) || msg.get_dst() == name) && login_success) {
-                std::cout << '\n' << "[time: " << msg.get_time() << " | from: " << msg.get_src() << " to: " << msg.get_dst() << "]: " << msg.get_msg() << std::endl;
-                std::cout << "(to " << dest << ") > " << std::flush;
+            } else if ((api.isChannelMember(msg.get_dst()) || msg.get_dst() == name) && login_success) {
+                std::cout << '\n' << "[time: " << msg.get_time() << " | from " << msg.get_src() << " to " << msg.get_dst() << "]: " << msg.get_msg() << std::endl;
+                std::cout << "[" << name << "](to " << dest << ") > " << std::flush;
             }
             
             sf::sleep(sf::milliseconds(100));
@@ -137,14 +89,15 @@ public:
 
         std::cout << "Connected to server! Type your messages below." << std::endl;
         std::cout << "Type '!exit' to quit. Type '!help' for commands." << std::endl;
+        std::cout << "You are logged in as '" << name << "'." << std::endl;
         std::cout << "------------------------" << std::endl;
 
-        requestDb();
+        api.requestDb();
         
         std::string message;
         dest = ":all";
         while (connected) {
-            std::cout << "(to " << dest << ") > " << std::flush;
+            std::cout << "[" << name << "](to " << dest << ") > " << std::flush;
             std::getline(std::cin, message);
             
             if (!connected) break;
@@ -155,44 +108,34 @@ public:
                 break;
             }
             else if (message == "!cldb") {
-                std::cout << db.getString() << std::endl;
+                std::cout << api.getDbString() << std::endl;
                 continue;
             }
             else if (message.substr(0, 5) == "!dest") {
-                if (!db.is_channel_member(message.substr(6, std::string::npos))) continue;
+                if (!api.isChannelMember(message.substr(6, std::string::npos))) continue;
                 dest = message.substr(6, std::string::npos);
                 continue;
             }
             else if (message.substr(0, 5) == "!join") {
-                if (api.joinChannel(message.substr(6, std::string::npos))) 
-                    db.join(message.substr(6, std::string::npos));
+                api.joinChannel(message.substr(6, std::string::npos));
                 dest = message.substr(6, std::string::npos);
                 continue;
             }
             else if (message.substr(0, 6) == "!leave") {
-                if (api.leaveChannel(message.substr(7, std::string::npos))) 
-                    db.leave(message.substr(7, std::string::npos)); 
+                api.leaveChannel(message.substr(7, std::string::npos));
                 dest = ":all";
-                continue;
-            }
-            else if (message.substr(0, 5) == "!msgs") {
-                for (auto& i : server_responses) std::cout << i << " ; EOT\n";
-                std::cout << std::flush;
-                continue;
-            }
-            else if (message.substr(0, 2) == "!l") {
-                std::cout << *(--server_responses.end()) << " ; EOT\n";
                 continue;
             }
             else if (message.substr(0, 5) == "!chat") {
                 auto arg = message.substr(6, std::string::npos);
-                if (!db.is_channel_member(arg)) continue;
+                if (!api.isChannelMember(arg)) continue;
                 std::cout << '\n' << api.getChat(arg).to_stream().rdbuf() << " ; EOT" << std::endl;
                 continue;
             }
-            else if (message == "!testrequest") {
-                std::cout << "Sending test request..." << std::endl;
-                std::cout << api.request("test", name) << std::endl;
+            else if (message.substr(0, 7) == "!create") {
+                auto arg = message.substr(8, std::string::npos);
+                api.createChannel(arg);
+                dest = arg;
                 continue;
             }
             else if (message == "!help") {
@@ -200,8 +143,10 @@ public:
                              "!exit                         - Disconnect from server and exit client\n"
                              "!dest <channel/user>          - Set destination channel for messages\n"
                              "!join <channel>               - Join a channel\n"
+                             "!leave <channel>              - Leave a channel\n"
+                             "!create <channel>             - Create a new channel and join it\n"
+                             "!cldb                         - Print client database\n"
                              "!chat <channel/user>          - Request chat history for a channel or user\n"
-                             "!testrequest                  - Send test request to server\n"
                              "!help                         - Show this help message\n";
                 continue;
             }

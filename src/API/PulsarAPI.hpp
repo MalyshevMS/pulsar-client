@@ -17,6 +17,7 @@ class PulsarAPI {
 private:
     sf::TcpSocket& socket;
     std::string name;
+    Database db;
     std::list<std::string> server_responses;
 
     std::string waitForServerResponse(const std::string& expectedType, const std::string& additional = "", int32_t timeout_ms = PULSAR_TIMEOUT_MS) {
@@ -52,7 +53,7 @@ public:
         Fail_Unknown
     };
 
-    PulsarAPI(sf::TcpSocket& sock, const std::string& username) : socket(sock), name(username) {}
+    PulsarAPI(sf::TcpSocket& sock, const std::string& username) : socket(sock), name(username), db(username) {}
     
     std::string getName() const { return name; }
     sf::TcpSocket& getSocket() const { return socket; }
@@ -97,6 +98,7 @@ public:
         auto response = request("join", channel, channel);
         if (response.find("+join") != std::string::npos && response.find(channel) != std::string::npos) {
             std::cout << "Joined channel " << channel << std::endl;
+            db.join(channel);
             return true;
         } else {
             std::cout << "Failed to join channel " << channel << std::endl;
@@ -108,9 +110,22 @@ public:
         auto response = request("leave", channel, channel);
         if (response.find("+leave") != std::string::npos && response.find(channel) != std::string::npos) {
             std::cout << "Left channel " << channel << std::endl;
+            db.leave(channel);
             return true;
         } else {
             std::cout << "Failed to leave channel " << channel << std::endl;
+            return false;
+        }
+    }
+
+    bool createChannel(const std::string& channel) {
+        auto response = request("create", channel, channel);
+        if (response.find("+create") != std::string::npos && response.find(channel) != std::string::npos) {
+            std::cout << "Created channel " << channel << std::endl;
+            joinChannel(channel);
+            return true;
+        } else {
+            std::cout << "Failed to create channel " << channel << std::endl;
             return false;
         }
     }
@@ -150,15 +165,35 @@ public:
         return Chat(json["name"], vec);
     }
 
+    bool requestDb() {
+        auto response = request("db user", name);
+        try {
+            auto json = Json::parse(response.substr(8, std::string::npos));
+            db.init(json);
+            return true;
+        } catch (const std::exception& e) {
+            std::cout << "Error parsing database response: " << e.what() << std::endl;
+            return false;
+        }
+    }
+
+    bool isChannelMember(const std::string& channel) {
+        return db.is_channel_member(channel);
+    }
+
+    std::string getDbString() {
+        return db.getString();
+    }
+
     Message receiveLastMessage() {
         sf::Packet packet;
         if (socket.receive(packet) != sf::Socket::Status::Done) {
-            throw std::runtime_error("Error receiving message");
+            disconnect();
         }
 
         std::string msg;
         if (!(packet >> msg)) {
-            throw std::runtime_error("Error extracting message from packet");
+            disconnect();
         }
 
         auto json = Json::parse(msg);
