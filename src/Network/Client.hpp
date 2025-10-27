@@ -135,6 +135,14 @@ public:
                 std::cout << '\n' << api.getChat(arg).to_stream().rdbuf() << " ; EOT" << std::endl;
                 continue;
             }
+            else if (message.substr(0, 7) == "!create") {
+                auto arg = message.substr(8, std::string::npos);
+                if (api.createChannel(arg)) 
+                    if (api.joinChannel(arg)) 
+                        db.join(arg);
+                dest = arg;
+                continue;
+            }
             else if (message == "!testrequest") {
                 std::cout << "Sending test request..." << std::endl;
                 std::cout << api.request("test", name) << std::endl;

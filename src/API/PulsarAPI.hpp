@@ -115,6 +115,17 @@ public:
         }
     }
 
+    bool createChannel(const std::string& channel) {
+        auto response = request("create", channel, channel);
+        if (response.find("+create") != std::string::npos && response.find(channel) != std::string::npos) {
+            std::cout << "Created channel " << channel << std::endl;
+            return true;
+        } else {
+            std::cout << "Failed to create channel " << channel << std::endl;
+            return false;
+        }
+    }
+
     LoginResult login(const std::string& password) {
         auto response = request("login", jsonToString(Json::array({name, password})));
 
