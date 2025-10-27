@@ -25,11 +25,10 @@ private:
     std::string dest;
     std::string name;
     std::string password;
-    Database db;
     PulsarAPI api;
 public:
     Client(const std::string& name, const std::string& password_unhashed, const std::string& ip, unsigned short p)
-     : name(name), serverIP(ip), port(p), connected(false), db(name), api(socket, name) {
+     : name(name), serverIP(ip), port(p), connected(false), api(socket, name) {
         if (password_unhashed.size() > 0) password = hash(password_unhashed);
         else password = "";
     }
@@ -57,7 +56,7 @@ public:
 
             if (msg.get_src() == "!server") {
                 api.storeServerResponse(msg.get_msg());
-            } else if ((db.is_channel_member(msg.get_dst()) || msg.get_dst() == name) && login_success) {
+            } else if ((api.isChannelMember(msg.get_dst()) || msg.get_dst() == name) && login_success) {
                 std::cout << '\n' << "[time: " << msg.get_time() << " | from " << msg.get_src() << " to " << msg.get_dst() << "]: " << msg.get_msg() << std::endl;
                 std::cout << "(to " << dest << ") > " << std::flush;
             }
@@ -93,7 +92,7 @@ public:
         std::cout << "You are logged in as '" << name << "'." << std::endl;
         std::cout << "------------------------" << std::endl;
 
-        db = api.requestDb();
+        api.requestDb();
         
         std::string message;
         dest = ":all";
@@ -109,43 +108,34 @@ public:
                 break;
             }
             else if (message == "!cldb") {
-                std::cout << db.getString() << std::endl;
+                std::cout << api.getDbString() << std::endl;
                 continue;
             }
             else if (message.substr(0, 5) == "!dest") {
-                if (!db.is_channel_member(message.substr(6, std::string::npos))) continue;
+                if (!api.isChannelMember(message.substr(6, std::string::npos))) continue;
                 dest = message.substr(6, std::string::npos);
                 continue;
             }
             else if (message.substr(0, 5) == "!join") {
-                if (api.joinChannel(message.substr(6, std::string::npos))) 
-                    db.join(message.substr(6, std::string::npos));
+                api.joinChannel(message.substr(6, std::string::npos));
                 dest = message.substr(6, std::string::npos);
                 continue;
             }
             else if (message.substr(0, 6) == "!leave") {
-                if (api.leaveChannel(message.substr(7, std::string::npos))) 
-                    db.leave(message.substr(7, std::string::npos)); 
+                api.leaveChannel(message.substr(7, std::string::npos));
                 dest = ":all";
                 continue;
             }
             else if (message.substr(0, 5) == "!chat") {
                 auto arg = message.substr(6, std::string::npos);
-                if (!db.is_channel_member(arg)) continue;
+                if (!api.isChannelMember(arg)) continue;
                 std::cout << '\n' << api.getChat(arg).to_stream().rdbuf() << " ; EOT" << std::endl;
                 continue;
             }
             else if (message.substr(0, 7) == "!create") {
                 auto arg = message.substr(8, std::string::npos);
-                if (api.createChannel(arg)) 
-                    if (api.joinChannel(arg)) 
-                        db.join(arg);
+                api.createChannel(arg);
                 dest = arg;
-                continue;
-            }
-            else if (message == "!testrequest") {
-                std::cout << "Sending test request..." << std::endl;
-                std::cout << api.request("test", name) << std::endl;
                 continue;
             }
             else if (message == "!help") {
@@ -153,8 +143,10 @@ public:
                              "!exit                         - Disconnect from server and exit client\n"
                              "!dest <channel/user>          - Set destination channel for messages\n"
                              "!join <channel>               - Join a channel\n"
+                             "!leave <channel>              - Leave a channel\n"
+                             "!create <channel>             - Create a new channel and join it\n"
+                             "!cldb                         - Print client database\n"
                              "!chat <channel/user>          - Request chat history for a channel or user\n"
-                             "!testrequest                  - Send test request to server\n"
                              "!help                         - Show this help message\n";
                 continue;
             }
