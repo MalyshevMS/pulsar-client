@@ -145,7 +145,6 @@ public:
                              "!join <channel>               - Join a channel\n"
                              "!leave <channel>              - Leave a channel\n"
                              "!create <channel>             - Create a new channel and join it\n"
-                             "!cldb                         - Print client database\n"
                              "!chat <channel/user>          - Request chat history for a channel or user\n"
                              "!help                         - Show this help message\n";
                 continue;
