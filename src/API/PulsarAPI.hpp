@@ -19,6 +19,7 @@ private:
     std::string name;
     Database db;
     std::list<std::string> server_responses;
+    std::atomic_bool connected = true;
 
     std::string waitForServerResponse(const std::string& expectedType, const std::string& additional = "", int32_t timeout_ms = PULSAR_TIMEOUT_MS) {
         int32_t wait_time = 0;
@@ -59,8 +60,10 @@ public:
     sf::TcpSocket& getSocket() const { return socket; }
 
     void disconnect() {
+        if (!connected) return;
+        connected = false;
         socket.disconnect();
-        std::cout << "Press any key to continue...";
+        std::cout << "Disconnected; Press any key to continue...";
         std::cin.get();
     }
 
@@ -184,6 +187,7 @@ public:
     }
 
     Message receiveLastMessage() {
+        if (!connected) return Message(0, "", "", "");
         char buffer[PULSAR_PACKET_SIZE];
         std::size_t received;
         if (socket.receive(buffer, sizeof(buffer), received) != sf::Socket::Status::Done) {
@@ -191,14 +195,18 @@ public:
         }
 
         std::string msg(buffer, received);
+        Json json;
 
-        auto json = Json::parse(msg);
-        if (json["type"] == "error") {
-            std::cerr << "\nAn error has been occured!\nError source: " << json["src"] << "\nError text: " << json["msg"] << std::endl;
-            return Message(0, "!server", name, "error: " + std::string(json["msg"]));
+        try {
+            json = Json::parse(msg);
+            if (json["type"] == "error") {
+                std::cerr << "\nAn error has been occured!\nError source: " << json["src"] << "\nError text: " << json["msg"] << std::endl;
+                return Message(0, "!server", name, "error: " + std::string(json["msg"]));
+            }
+            return Message(json["time"], json["src"], json["dst"], json["msg"]);
+        } catch (const std::exception& e) {
+            return Message(0, "", "", "");
         }
-
-        return Message(json["time"], json["src"], json["dst"], json["msg"]);
     }
 
     void storeServerResponse(const std::string& response) {
