@@ -85,10 +85,8 @@ public:
         });
 
         std::string msg = jsonToString(json);
-        sf::Packet packet;
-        packet << msg;
         
-        if (socket.send(packet) != sf::Socket::Status::Done) {
+        if (socket.send(msg.data(), msg.size()) != sf::Socket::Status::Done) {
             std::cout << "Error sending message" << std::endl;
             disconnect();
         }
@@ -186,15 +184,13 @@ public:
     }
 
     Message receiveLastMessage() {
-        sf::Packet packet;
-        if (socket.receive(packet) != sf::Socket::Status::Done) {
+        char buffer[PULSAR_PACKET_SIZE];
+        std::size_t received;
+        if (socket.receive(buffer, sizeof(buffer), received) != sf::Socket::Status::Done) {
             disconnect();
         }
 
-        std::string msg;
-        if (!(packet >> msg)) {
-            disconnect();
-        }
+        std::string msg(buffer, received);
 
         auto json = Json::parse(msg);
         if (json["type"] == "error") {
