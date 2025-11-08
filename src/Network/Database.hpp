@@ -79,7 +79,7 @@ public:
     }
 
     void add_contact(Key username, Str contact) {
-        db["users"][username]["contacts"][username] = contact;
+        db["users"][this->username]["contacts"][username] = contact;
     }
 
     void remove_contact(Key contact) {

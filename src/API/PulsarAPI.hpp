@@ -224,15 +224,14 @@ public:
 
         std::string msg(buffer, received);
         Json json;
-
         try {
             json = Json::parse(msg);
             if (json["type"] == "error") {
                 std::cerr << "\nAn error has been occured!\nError source: " << json["src"] << "\nError text: " << json["msg"] << std::endl;
                 return Message(0, "!server", name, "error: " + std::string(json["msg"]));
             }
-            return Message(json["time"], json["src"], json["dst"], json["msg"]);
-        } catch (const std::exception& e) {
+            return Message(json["time"], json["src"], json["dst"], json["msg"]).to_contact(db);
+        } catch (...) {
             return Message(0, "", "", "");
         }
     }
