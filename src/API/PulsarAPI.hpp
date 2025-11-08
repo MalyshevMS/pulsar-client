@@ -12,6 +12,7 @@
 #include "../Other/Datetime.hpp"
 #include "../Other/Chat.hpp"
 #include "../Network/Database.hpp"
+#include "../Network/Checker.hpp"
 
 class PulsarAPI {
 private:
@@ -54,7 +55,9 @@ public:
         Fail_Unknown
     };
 
-    PulsarAPI(sf::TcpSocket& sock, const std::string& username) : socket(sock), name(username), db(username) {}
+    PulsarAPI(sf::TcpSocket& sock, const std::string& username) : socket(sock), name(username), db(username) {
+        if (!Checker::checkUsername(username)) PULSAR_THROW UsernameFailed(username);
+    }
     
     std::string getName() const { return name; }
     sf::TcpSocket& getSocket() const { return socket; }
@@ -120,6 +123,8 @@ public:
     }
 
     bool createChannel(const std::string& channel) {
+        if (!Checker::checkChannelName(channel)) PULSAR_THROW ChannelNameFailed();
+
         auto response = request("create", channel, channel);
         if (response.find("+create") != std::string::npos && response.find(channel) != std::string::npos) {
             std::cout << "Created channel " << channel << std::endl;
@@ -132,6 +137,8 @@ public:
     }
 
     bool createContact(const std::string& username, const std::string& contact) {
+        if (!Checker::checkUsername(username)) PULSAR_THROW UsernameFailed(username);
+
         auto response = request("db contact add", jsonToString(Json::array({username, contact})));
         if (response.find("+db contact add") != std::string::npos && response.find(username) != std::string::npos) {
             std::cout << "Created contact " << '"' << contact << '"' << std::endl;
@@ -144,6 +151,8 @@ public:
     }
 
     bool removeContact(const std::string& contact) {
+        if (!Checker::checkUsername(contact)) PULSAR_THROW UsernameFailed(contact);
+
         auto response = request("db contact rem", contact);
         if (response.find("+db contact rem") != std::string::npos && response.find(contact) != std::string::npos) {
             std::cout << "Deleted contact " << '"' << contact << '"' << std::endl;
@@ -184,6 +193,8 @@ public:
     }
 
     Chat getChat(const std::string& channel) {
+        if (!Checker::checkChannelName(channel)) PULSAR_THROW ChannelNameFailed();
+
         auto response = request("chat", channel, channel);
         auto json = Json::parse(response.substr(5, std::string::npos));
         std::vector<std::string> vec = json["chat"];
@@ -203,6 +214,7 @@ public:
     }
 
     bool isChannelMember(const std::string& channel) {
+        if (!Checker::checkChannelName(channel)) PULSAR_THROW ChannelNameFailed();
         return db.is_channel_member(channel);
     }
 
