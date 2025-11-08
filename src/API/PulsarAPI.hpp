@@ -37,7 +37,7 @@ private:
                     }
                 }
                 #ifdef PULSAR_DEBUG
-                    std::cerr << "Type not matched: " << response << std::endl;
+                    std::cerr << "[DEBUG]: Type not matched: " << response << std::endl;
                 #endif
             }
             sf::sleep(sf::milliseconds(1));
@@ -131,6 +131,30 @@ public:
         }
     }
 
+    bool createContact(const std::string& username, const std::string& contact) {
+        auto response = request("db contact add", jsonToString(Json::array({username, contact})));
+        if (response.find("+db contact add") != std::string::npos && response.find(username) != std::string::npos) {
+            std::cout << "Created contact " << '"' << contact << '"' << std::endl;
+            db.add_contact(username, contact);
+            return true;
+        } else {
+            std::cout << "Failed to create contact " << '"' << contact << '"' << std::endl;
+            return false;
+        }
+    }
+
+    bool removeContact(const std::string& contact) {
+        auto response = request("db contact rem", contact);
+        if (response.find("+db contact rem") != std::string::npos && response.find(contact) != std::string::npos) {
+            std::cout << "Deleted contact " << '"' << contact << '"' << std::endl;
+            db.remove_contact(contact);
+            return true;
+        } else {
+            std::cout << "Failed to deleted contact " << '"' << contact << '"' << std::endl;
+            return false;
+        }
+    }
+
     LoginResult login(const std::string& password) {
         auto response = request("login", jsonToString(Json::array({name, password})));
 
@@ -184,6 +208,10 @@ public:
 
     std::string getDbString() {
         return db.getString();
+    }
+
+    std::string getLastResponse() {
+        return *(--server_responses.end());
     }
 
     Message receiveLastMessage() {
