@@ -1,5 +1,5 @@
 //  === Pulsar Checker version 0.0.1 ===
-//  Last update/sync: 08.11.2025 23:45 (UTC+3 Moscow)
+//  Last update/sync: 09.11.2025 12:48 (UTC+3 Moscow)
 //  This header must be synchronized BOTH the server and client
 #pragma once
 
@@ -76,7 +76,7 @@ namespace Checker {
     };
 
     std::string channel_blocked[] = {
-        ":all", ":server", ":browser"
+        ":server", ":browser"
     };
 
     bool checkChannelName(Channel channel) {

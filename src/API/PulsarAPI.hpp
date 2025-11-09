@@ -123,7 +123,7 @@ public:
     }
 
     bool createChannel(const std::string& channel) {
-        if (!Checker::checkChannelName(channel)) PULSAR_THROW ChannelNameFailed();
+        if (!Checker::checkChannelName(channel)) PULSAR_THROW ChannelNameFailed(channel);
 
         auto response = request("create", channel, channel);
         if (response.find("+create") != std::string::npos && response.find(channel) != std::string::npos) {
@@ -184,16 +184,19 @@ public:
     LoginResult registerUser(const std::string& password) {
         auto response = request("register", jsonToString(Json::array({name, password})));
 
-        if (response.find("register success") != std::string::npos) {
+        if (response.find("+register") != std::string::npos) {
             return LoginResult::Success;
+        } else if (response.find("-register") != std::string::npos) {
+            std::cout << "Register failed: User already exists" << std::endl;
+            return LoginResult::Fail_Username;
         } else {
-            std::cout << "Login failed: Unknown error" << std::endl;
+            std::cout << "Register failed: Unknown error" << std::endl;
             return LoginResult::Fail_Unknown;
         }
     }
 
     Chat getChat(const std::string& channel) {
-        if (!Checker::checkChannelName(channel)) PULSAR_THROW ChannelNameFailed();
+        if (!Checker::checkChannelName(channel) && channel[0] != '@') PULSAR_THROW ChannelNameFailed(channel);
 
         auto response = request("chat", channel, channel);
         auto json = Json::parse(response.substr(5, std::string::npos));
@@ -214,7 +217,7 @@ public:
     }
 
     bool isChannelMember(const std::string& channel) {
-        if (!Checker::checkChannelName(channel)) PULSAR_THROW ChannelNameFailed();
+        if (!Checker::checkChannelName(channel) && channel[0] != '@' && channel[0] != '!' && channel != "") PULSAR_THROW ChannelNameFailed(channel);
         return db.is_channel_member(channel);
     }
 
