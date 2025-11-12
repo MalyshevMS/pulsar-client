@@ -112,32 +112,54 @@ public:
                 continue;
             }
             else if (message.substr(0, 5) == "!dest") {
-                if (!api.isChannelMember(message.substr(6, std::string::npos))) continue;
-                dest = message.substr(6, std::string::npos);
+                if (!api.isChannelMember(message.substr(6))) continue;
+                dest = message.substr(6);
                 continue;
             }
             else if (message.substr(0, 5) == "!join") {
-                api.joinChannel(message.substr(6, std::string::npos));
-                dest = message.substr(6, std::string::npos);
+                api.joinChannel(message.substr(6));
+                dest = message.substr(6);
                 continue;
             }
             else if (message.substr(0, 6) == "!leave") {
-                api.leaveChannel(message.substr(7, std::string::npos));
+                api.leaveChannel(message.substr(7));
                 dest = ":all";
                 continue;
             }
             else if (message.substr(0, 5) == "!chat") {
-                auto arg = message.substr(6, std::string::npos);
+                auto arg = message.substr(6);
                 if (!api.isChannelMember(arg)) continue;
                 std::cout << '\n' << api.getChat(arg).to_stream().rdbuf() << " ; EOT" << std::endl;
                 continue;
             }
             else if (message.substr(0, 7) == "!create") {
-                auto arg = message.substr(8, std::string::npos);
+                auto arg = message.substr(8);
                 api.createChannel(arg);
                 dest = arg;
                 continue;
             }
+            else if (message.substr(0, 8) == "!contact") {
+                auto com = message.substr(9, 3);
+                auto arg = message.substr(13);
+                if (com == "add") {
+                    if (arg.find(' ') == std::string::npos) {
+                        std::cout << "Usage: !contact add <username> <contact>" << std::endl;
+                        continue;
+                    }
+                    auto name = arg.substr(0, arg.find(' '));
+                    auto cont = arg.substr(arg.find(' ') + 1);
+                    api.createContact(name, cont);
+                } else if (com == "rem") {
+                    api.removeContact(arg);
+                }
+                continue;
+            }
+            #ifdef PULSAR_DEBUG
+            else if (message == "!l") {
+                std::cout << "\n[DEBUG]: " << api.getLastResponse() << std::endl;
+                continue;
+            }
+            #endif
             else if (message == "!help") {
                 std::cout << "Available commands:\n"
                              "!exit                         - Disconnect from server and exit client\n"
@@ -145,7 +167,6 @@ public:
                              "!join <channel>               - Join a channel\n"
                              "!leave <channel>              - Leave a channel\n"
                              "!create <channel>             - Create a new channel and join it\n"
-                             "!cldb                         - Print client database\n"
                              "!chat <channel/user>          - Request chat history for a channel or user\n"
                              "!help                         - Show this help message\n";
                 continue;

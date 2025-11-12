@@ -1,28 +1,34 @@
 #pragma once
 
 #include <string>
-#include <bitset>
-#include <iomanip>
 #include <sstream>
-#include "../defines"
+#include <iomanip>
+
+uint32_t fnv1a(const std::string& str) {
+    uint32_t hash = 0x811C9DC5; // FNV offset basis
+    for (char c : str) {
+        hash ^= static_cast<uint8_t>(c);
+        hash *= 0x01000193; // FNV prime
+    }
+    return hash;
+}
 
 std::string hasher(const std::string& input) {
-    std::hash<std::string> hasher;
-    size_t hash1 = hasher(PULSAR_SALT + input);
-    size_t hash2 = hasher(input + PULSAR_SALT);
+    uint32_t h1 = fnv1a(PULSAR_SALT + input);
+    uint32_t h2 = fnv1a(input + PULSAR_SALT);
     
-    std::string combined = std::to_string(hash1) + std::to_string(hash2);
-    size_t finalHash = hasher(combined);
-    
+    std::string combined = std::to_string(h1) + std::to_string(h2);
+    uint32_t finalHash = fnv1a(combined);
+
     std::stringstream ss;
     ss << std::hex << finalHash;
     return ss.str();
 }
 
 std::string hash(const std::string& unhashed) {
-    std::string unhashed_copy = unhashed;
+    std::string current = unhashed;
     for (int i = 0; i < PULSAR_HASH_ITERATIONS; ++i) {
-        unhashed_copy = hasher(unhashed_copy);
+        current = hasher(current);
     }
-    return unhashed_copy;
+    return current;
 }
