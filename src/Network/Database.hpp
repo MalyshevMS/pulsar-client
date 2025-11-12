@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../lib/jsonlib.h"
+#include "../Other/Profile.hpp"
 
 /*
     Client's Database structure (JSON):
@@ -14,6 +15,8 @@
                     "@username": "contact name (string)"
                 },
                 "email": "user's email (string)",
+                "birthday": user's birthday (0 if nothings set),
+                "description": "description (string)",
                 "status": "active/inactive/banned (string)"
             }
             in client's database the user's count will be always 1
@@ -95,5 +98,12 @@ public:
         if (!db["users"][username]["contacts"].contains(contact)) return PULSAR_NO_CONTACT;
 
         return db["users"][username]["contacts"][contact];
+    }
+
+    void update_profile(const Profile& profile) {
+        db["users"][username]["description"] = profile.description();
+        db["users"][username]["email"] = profile.email();
+        db["users"][username]["name"] = profile.realName();
+        db["users"][username]["birthday"] = profile.birthday().toTime();
     }
 };

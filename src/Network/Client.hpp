@@ -154,6 +154,35 @@ public:
                 }
                 continue;
             }
+            else if (message.substr(0, 8) == "!profile") {
+                auto arg = message.substr(9);
+                if (arg == "edit") {
+                    std::string description;
+                    std::string email;
+                    std::string realName;
+                    time_t birthday;
+
+                    std::cout << "Enter new description: ";
+                    std::cin >> description;
+                    std::cout << "Enter new email: ";
+                    std::cin >> email;
+                    std::cout << "Enter new real name: ";
+                    std::cin >> realName;
+                    std::cout << "Enter new birthday (integer): ";
+                    std::cin >> birthday;
+
+                    api.updateProfile(Profile(description, email, realName, Datetime(birthday)));
+                } else {
+                    auto profile = api.getProfile(arg);
+                    std::cout << "Profile for " << arg << ":" \
+                    << "\n\tDescription: " << profile.description() \
+                    << "\n\tEmail: " << profile.email() \
+                    << "\n\tReal name: " << profile.realName() \
+                    << "\n\tBirthday: " << profile.birthday().toTime() \
+                    << std::endl;
+                }
+                continue;
+            }
             #ifdef PULSAR_DEBUG
             else if (message == "!l") {
                 std::cout << "\n[DEBUG]: " << api.getLastResponse() << std::endl;
