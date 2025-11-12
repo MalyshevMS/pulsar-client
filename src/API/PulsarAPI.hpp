@@ -164,6 +164,24 @@ public:
         }
     }
 
+    void updateProfile(const Profile& profile) {
+        db.update_profile(profile);
+
+        auto response = request("profile", jsonToString(Json::array({"set", name, profile.toJson()})));
+        if (response.find("profile set") != std::string::npos && response.find(name) != std::string::npos) {
+            std::cout << "Profile updated" << std::endl;
+        }
+    }
+
+    Profile getProfile(const std::string& username) {
+        auto response = request("profile", jsonToString(Json::array({"get", username})));
+        if (response.find("profile get") != std::string::npos) {
+            return Profile::fromJson(Json::parse(response.substr(12)));
+        } else {
+            return PULSAR_NO_PROFILE;
+        }
+    }
+
     LoginResult login(const std::string& password) {
         auto response = request("login", jsonToString(Json::array({name, password})));
 
