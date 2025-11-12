@@ -2,11 +2,16 @@
 #include "API/PulsarAPI.hpp"
 #include "Network/Client.hpp"
 
+#include "Graphics/Window.hpp" 
+
 #ifdef _WIN32
 #include <windows.h>
 #endif
 
 int main(int argc, const char** argv) {
+
+
+
 #ifdef _WIN32
     SetConsoleCP(65001); // Russian UTF-8 support
     SetConsoleOutputCP(65001);
@@ -41,5 +46,8 @@ int main(int argc, const char** argv) {
     client.run();
     
     std::cout << "Client terminated." << std::endl;
+
+
+    
     return 0;
 }
