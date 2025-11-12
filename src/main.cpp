@@ -5,7 +5,11 @@
 #include "Graphics/Window.hpp" 
 
 #ifdef _WIN32
-#include <windows.h>
+#   include <windows.h>
+#endif
+
+#ifndef PULSAR_CHECKER_VERSION
+#   error Pulsar Checker not included!
 #endif
 
 int main(int argc, const char** argv) {

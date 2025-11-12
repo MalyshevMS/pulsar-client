@@ -2,6 +2,7 @@
 
 #include "../lib/jsonlib.h"
 #include "../defines"
+#include "../Network/Database.hpp"
 
 class Message {
 private:
@@ -17,6 +18,13 @@ public:
     std::string get_src() { return src; }
     std::string get_dst() { return dst; }
     std::string get_msg() { return msg; }
+    
+    Message to_contact(Database& db) {
+        std::string contact = db.contact(src);
+
+        if (contact != PULSAR_NO_CONTACT) src = contact;
+        return *this;
+    }
 };
 
 static Message parse_line(const std::string& line, const std::string& destination) {
