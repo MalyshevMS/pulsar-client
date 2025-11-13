@@ -11,6 +11,7 @@
 #include "../lib/hash.h"
 #include "../Other/Datetime.hpp"
 #include "../Other/Chat.hpp"
+#include "../Graphics/Window.hpp"
 #include "../API/PulsarAPI.hpp"
 #include "Database.hpp"
 
@@ -26,9 +27,10 @@ private:
     std::string name;
     std::string password;
     PulsarAPI api;
+    Window window;
 public:
     Client(const std::string& name, const std::string& password_unhashed, const std::string& ip, unsigned short p)
-     : name(name), serverIP(ip), port(p), connected(false), api(socket, name) {
+     : name(name), serverIP(ip), port(p), connected(false), api(socket, name), window("Pulsar", 1280, 720) {
         if (password_unhashed.size() > 0) password = hash(password_unhashed);
         else password = "";
     }
@@ -47,6 +49,7 @@ public:
     void disconnect() {
         connected = false;
         api.disconnect();
+        window.stop();
         exit(0);
     }
     
@@ -69,8 +72,11 @@ public:
         if (!connectToServer()) {
             return;
         }
+
+        window.run();
         
         receiveThread = std::thread(&Client::receiveMessages, this);
+
         auto login_status = api.login(password);
         if (login_status == PulsarAPI::LoginResult::Fail_Username) {
             std::cout << "Register new user? (y/N): ";

@@ -2,8 +2,6 @@
 #include "API/PulsarAPI.hpp"
 #include "Network/Client.hpp"
 
-#include "Graphics/Window.hpp" 
-
 #ifdef _WIN32
 #   include <windows.h>
 #endif
@@ -50,8 +48,6 @@ int main(int argc, const char** argv) {
     client.run();
     
     std::cout << "Client terminated." << std::endl;
-
-
     
     return 0;
 }
