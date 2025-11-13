@@ -61,7 +61,7 @@ public:
                 api.storeServerResponse(msg.get_msg());
             } else if ((api.isChannelMember(msg.get_dst()) || msg.get_dst() == name) && login_success) {
                 std::cout << '\n' << "[time: " << msg.get_time() << " | from " << msg.get_src() << " to " << msg.get_dst() << "]: " << msg.get_msg() << std::endl;
-                std::cout << "[" << name << "](to " << dest << ") > " << std::flush;
+                std::cout << "\r[" << name << "](to " << dest << ") > " << std::flush;
             }
             
             sf::sleep(sf::milliseconds(100));
@@ -103,7 +103,7 @@ public:
         std::string message;
         dest = ":all";
         while (connected) {
-            std::cout << "[" << name << "](to " << dest << ") > " << std::flush;
+            std::cout << "\r[" << name << "](to " << dest << ") > " << std::flush;
             std::getline(std::cin, message);
             
             if (!connected) break;
