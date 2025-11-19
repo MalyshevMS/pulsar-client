@@ -6,6 +6,9 @@
 #include <list>
 #include <atomic>
 #include <string>
+#include <mutex>
+#include <condition_variable>
+#include <chrono>
 
 #include "../lib/jsonlib.h"
 #include "../lib/hash.h"
@@ -21,30 +24,46 @@ private:
     Database db;
     std::list<std::string> server_responses;
     std::atomic_bool connected = true;
+    std::mutex responses_mutex;
+    std::condition_variable responses_cv;
 
     std::string waitForServerResponse(const std::string& expectedType, const std::string& additional = "", int32_t timeout_ms = PULSAR_TIMEOUT_MS) {
-        int32_t wait_time = 0;
-        while (wait_time < timeout_ms) {
-            if (!server_responses.empty()) {
-                std::string response = *(--server_responses.end());
+        auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout_ms);
+
+        std::unique_lock<std::mutex> lock(responses_mutex);
+        while (std::chrono::steady_clock::now() < deadline) {
+            // search for a matching response in the stored responses
+            for (auto it = server_responses.begin(); it != server_responses.end(); ++it) {
+                const std::string response = *it;
                 try {
                     auto json = Json::parse(response);
                     if (json.contains("type") && json["type"] == expectedType) {
-                        return response;
+                        std::string out = response;
+                        server_responses.erase(it);
+                        return out;
                     }
-                } catch(const std::exception& e) {
-                    if (response.find(expectedType) != std::string::npos && response.find(additional) != std::string::npos) {
-                        return response;
+                } catch (...) {
+                    // allow optional leading '+' or '-' from server responses (e.g. "+create ...")
+                    bool starts = false;
+                    if (response.size() >= expectedType.size() && response.substr(0, expectedType.size()) == expectedType) starts = true;
+                    else if (response.size() >= expectedType.size() + 1 && (response[0] == '+' || response[0] == '-') && response.substr(1, expectedType.size()) == expectedType) starts = true;
+
+                    if (starts && (additional.empty() || response.find(additional) != std::string::npos)) {
+                        std::string out = response;
+                        server_responses.erase(it);
+                        return out;
                     }
                 }
                 #ifdef PULSAR_DEBUG
                     std::cerr << "[DEBUG]: Type not matched: " << response << std::endl;
                 #endif
             }
-            sf::sleep(sf::milliseconds(1));
-            wait_time++;
+
+            // wait until new responses arrive or timeout approaches
+            responses_cv.wait_for(lock, std::chrono::milliseconds(50));
         }
-        std::cout << "Timeout waiting for server response" << std::endl;
+
+        std::cout << "Timeout waiting for server response: " << expectedType << ", " << additional << std::endl;
         return "";
     }
 public:
@@ -244,11 +263,13 @@ public:
     }
 
     std::string getLastResponse() {
-        return *(--server_responses.end());
+        std::lock_guard<std::mutex> lock(responses_mutex);
+        if (server_responses.empty()) return std::string();
+        return server_responses.back();
     }
 
     Message receiveLastMessage() {
-        if (!connected) return Message(0, "", "", "");
+        if (!connected) return PULSAR_NO_MESSAGE;
         char buffer[PULSAR_PACKET_SIZE];
         std::size_t received;
         if (socket.receive(buffer, sizeof(buffer), received) != sf::Socket::Status::Done) {
@@ -263,15 +284,51 @@ public:
                 std::cerr << "\nAn error has been occured!\nError source: " << json["src"] << "\nError text: " << json["msg"] << std::endl;
                 return Message(0, "!server", name, "error: " + std::string(json["msg"]));
             }
-            return Message(json["time"], json["src"], json["dst"], json["msg"]).to_contact(db);
+            return db.contact(Message(json["time"], json["src"], json["dst"], json["msg"]));
         } catch (...) {
-            return Message(0, "", "", "");
+            return PULSAR_NO_MESSAGE;
+        }
+    }
+
+    // bad working function
+    Message getMsgById(const std::string& chat, size_t id) {
+        auto response = request("msg", jsonToString(Json::array({chat, id})), std::to_string(id));
+        if (response.find("msg") != std::string::npos) {
+            return parse_line(response.substr(4), chat);
+        }
+        return PULSAR_NO_MESSAGE;
+    }
+
+    void storeUnread(const Message& msg) {
+        db.store_unread(msg);
+    }
+
+    std::vector<Message> getUnread() {
+        std::vector<Message> ret;
+        auto msg = PULSAR_NO_MESSAGE;
+        for (auto i : db.get_unread()) {
+            ret.push_back(msg.from_json(i));
+        }
+        return ret;
+    }
+
+    void requestUnread() {
+        auto response = request("db user", name); 
+        std::vector<Json> vec = Json::parse(response.substr(8, std::string::npos))["unread"];
+        for (auto json : vec) {
+            std::string chat_str = json["chat"];
+            size_t id = json["id"];
+            auto chat = getChat(chat_str);
+            auto msg = chat.getByID(id);
+            if (msg != PULSAR_NO_MESSAGE) db.store_unread(msg);
         }
     }
 
     void storeServerResponse(const std::string& response) {
+        std::lock_guard<std::mutex> lock(responses_mutex);
         server_responses.push_back(response);
         if (server_responses.size() > PULSAR_MESSAGE_LIMIT) server_responses.pop_front();
+        responses_cv.notify_one();
     }
 
     std::string request(const std::string& request_type, const std::string& args, const std::string& additional = "") {

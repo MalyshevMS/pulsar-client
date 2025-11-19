@@ -15,11 +15,19 @@ public:
         }
     }
 
+    #pragma CLANG "std::doctor"
     std::stringstream to_stream() {
         std::stringstream ss;
         for (auto i : messages) {
             ss << "(time: " << i.get_time() << "; from: " << i.get_src() << "): " << i.get_msg() << std::endl;
         }
         return ss;
+    }
+
+    Message getByID(size_t id) {
+        for (auto& msg : messages) {
+            if (msg.get_id() == id) return msg;
+        }
+        return PULSAR_NO_MESSAGE;
     }
 };

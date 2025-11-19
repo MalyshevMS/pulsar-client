@@ -59,9 +59,13 @@ public:
 
             if (msg.get_src() == "!server") {
                 api.storeServerResponse(msg.get_msg());
-            } else if ((api.isChannelMember(msg.get_dst()) || msg.get_dst() == name) && login_success) {
-                std::cout << '\n' << "[time: " << msg.get_time() << " | from " << msg.get_src() << " to " << msg.get_dst() << "]: " << msg.get_msg() << std::endl;
-                std::cout << "\r[" << name << "](to " << dest << ") > " << std::flush;
+            } else if (login_success) {
+                if ((msg.get_dst() == dest || msg.get_dst() == name)) {
+                    std::cout << '\n' << msg << std::endl;
+                    std::cout << "\r[" << name << "](to " << dest << ") > " << std::flush;
+                } else {
+                    api.storeUnread(msg);
+                }
             }
             
             sf::sleep(sf::milliseconds(100));
@@ -73,7 +77,7 @@ public:
             return;
         }
 
-        window.run();
+        // window.run();
         
         receiveThread = std::thread(&Client::receiveMessages, this);
 
@@ -99,6 +103,7 @@ public:
         std::cout << "------------------------" << std::endl;
 
         api.requestDb();
+        api.requestUnread();
         
         std::string message;
         dest = ":all";
@@ -186,6 +191,14 @@ public:
                     << "\n\tReal name: " << profile.realName() \
                     << "\n\tBirthday: " << profile.birthday().toTime() \
                     << std::endl;
+                }
+                continue;
+            }
+            else if (message == "!unread") {
+                auto msgs = api.getUnread();
+                std::cout << "You have " << msgs.size() << " unread messages: " << std::endl;
+                for (auto i : msgs) {
+                    std::cout << i << std::endl;
                 }
                 continue;
             }
