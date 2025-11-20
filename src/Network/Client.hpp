@@ -32,10 +32,10 @@ private:
     void displayUnreadMessages() {
         auto msgs = api.getUnread();
         if (msgs.size() == 0) {
-            std::cout << "No unread messages." << std::endl;
+            std::cout << "У вас нет непрочитанных сообщений." << std::endl;
             return;
         }
-        std::cout << "You have " << msgs.size() << " unread messages: " << std::endl;
+        std::cout << "У вас есть " << msgs.size() << " непрочитанных сообщений: " << std::endl;
         for (auto i : msgs) {
             std::cout << i << std::endl;
         }
@@ -50,8 +50,8 @@ public:
     bool connectToServer() {
         sf::Socket::Status status = socket.connect(*sf::IpAddress::resolve(serverIP), port, sf::milliseconds(PULSAR_TIMEOUT_MS));
         if (status != sf::Socket::Status::Done) {
-            std::cout << "Error: Could not connect to server " << serverIP << ":" << port << std::endl;
-            std::cout << "Make sure server is running and accessible" << std::endl;
+            std::cout << "Невозможно подключиться к " << serverIP << ":" << port << std::endl;
+            std::cout << "Удостоверьтесь, что сервер работает и доступен." << std::endl;
             return false;
         }
         connected = true;
@@ -74,7 +74,7 @@ public:
             } else if (login_success) {
                 if ((msg.get_dst() == dest || msg.get_dst() == name)) {
                     std::cout << '\n' << msg << std::endl;
-                    std::cout << "\r[" << name << "](to " << dest << ") > " << std::flush;
+                    std::cout << "\r[" << name << "](" << dest << ") > " << std::flush;
                 } else {
                     api.storeUnread(msg);
                 }
@@ -95,23 +95,23 @@ public:
 
         auto login_status = api.login(password);
         if (login_status == PulsarAPI::LoginResult::Fail_Username) {
-            std::cout << "Register new user? (y/N): ";
+            std::cout << "Зарегситрировать нового пользователя? (y/N): ";
             std::string ans;
             std::getline(std::cin, ans);
             if (ans[0] == (char)0 || ans[0] == 'n' || ans[0] == 'N') disconnect();
             if (api.registerUser(password) != PulsarAPI::LoginResult::Success) {
-                std::cout << "Registration failed; Disconnecting..." << std::endl;
+                std::cout << "Ошибка регистрации; Отключение..." << std::endl;
                 disconnect();
             }
         } else if (login_status != PulsarAPI::LoginResult::Success) {
-            std::cout << "Disconnecting..." << std::endl;
+            std::cout << "Отключение..." << std::endl;
             disconnect();
         }
         login_success = true;
 
-        std::cout << "Connected to server! Type your messages below." << std::endl;
-        std::cout << "Type '!exit' to quit. Type '!help' for commands." << std::endl;
-        std::cout << "You are logged in as '" << name << "'." << std::endl;
+        std::cout << "Подключено к серверу! Наберите свои сообщения ниже." << std::endl;
+        std::cout << "Наберите '!exit' чтобы выйти или '!help' чтобы посмотреть полный список команд." << std::endl;
+        std::cout << "Вы вошли в Pulsar как '" << name << "'." << std::endl;
         std::cout << "------------------------" << std::endl;
 
         api.requestDb();
@@ -123,14 +123,14 @@ public:
         std::string message;
         dest = ":all";
         while (connected) {
-            std::cout << "\r[" << name << "](to " << dest << ") > " << std::flush;
+            std::cout << "\r[" << name << "](" << dest << ") > " << std::flush;
             std::getline(std::cin, message);
             
             if (!connected) break;
             
             if (message == "!exit") {
                 api.sendUnread();
-                std::cout << "Disconnecting..." << std::endl;
+                std::cout << "Отключение..." << std::endl;
                 disconnect();
                 break;
             }
@@ -152,7 +152,7 @@ public:
             else if (message.substr(0, 5) == "!chat") {
                 auto arg = message.substr(6);
                 if (!api.isChannelMember(arg)) continue;
-                std::cout << '\n' << api.getChat(arg).to_stream().rdbuf() << " ; EOT" << std::endl;
+                std::cout << '\n' << api.getChat(arg).to_stream().rdbuf() << std::endl;
                 continue;
             }
             else if (message.substr(0, 7) == "!create") {
@@ -166,7 +166,7 @@ public:
                 auto arg = message.substr(13);
                 if (com == "add") {
                     if (arg.find(' ') == std::string::npos) {
-                        std::cout << "Usage: !contact add <username> <contact>" << std::endl;
+                        std::cout << "Использование: !contact add <username> <contact>" << std::endl;
                         continue;
                     }
                     auto name = arg.substr(0, arg.find(' '));
@@ -183,25 +183,26 @@ public:
                     std::string description;
                     std::string email;
                     std::string realName;
-                    time_t birthday;
+                    std::string birthday_str;
 
-                    std::cout << "Enter new description: ";
-                    std::cin >> description;
-                    std::cout << "Enter new email: ";
-                    std::cin >> email;
-                    std::cout << "Enter new real name: ";
-                    std::cin >> realName;
-                    std::cout << "Enter new birthday (integer): ";
-                    std::cin >> birthday;
+                    std::cout << "Введите новое описание: ";
+                    std::getline(std::cin, description);
+                    std::cout << "Введите новый email: ";
+                    std::getline(std::cin, email);
+                    std::cout << "Введите новое имя (настоящее): ";
+                    std::getline(std::cin, realName);
+                    std::cout << "Введите новый день рождения (одно число): ";
+                    std::getline(std::cin, birthday_str);
+                    auto birthday = std::stoll(birthday_str);
 
                     api.updateProfile(Profile(description, email, realName, Datetime(birthday)));
                 } else {
                     auto profile = api.getProfile(arg);
-                    std::cout << "Profile for " << arg << ":" \
-                    << "\n\tDescription: " << profile.description() \
+                    std::cout << "Профиль пользователя " << arg << ":" \
+                    << "\n\tОписание: " << profile.description() \
                     << "\n\tEmail: " << profile.email() \
-                    << "\n\tReal name: " << profile.realName() \
-                    << "\n\tBirthday: " << profile.birthday().toTime() \
+                    << "\n\tИмя: " << profile.realName() \
+                    << "\n\tДень рождения: " << profile.birthday().toTime() \
                     << std::endl;
                 }
                 continue;
@@ -212,14 +213,14 @@ public:
             }
             else if (message.substr(0, 5) == "!read") {
                 if (message.find(' ') == std::string::npos) {
-                    std::cout << "Usage: !read <chat> <id>" << std::endl;
+                    std::cout << "Использование: !read <chat> <id>" << std::endl;
                     continue;
                 }
                 auto rest = message.substr(6);
                 auto chat = rest.substr(0, rest.find(' '));
                 if (chat == "all") {
                     api.readAll(dest);
-                    std::cout << "Marked all messages in chat " << dest << " as read." << std::endl;
+                    std::cout << "Все сообщения в чате " << dest << " помечены как прочитанные." << std::endl;
                     continue;
                 }
 
@@ -228,11 +229,11 @@ public:
                 try {
                     id = std::stoull(id_str);
                 } catch (...) {
-                    std::cout << "Invalid id: " << id_str << std::endl;
+                    std::cout << "Неправильный ID сообщения: " << id_str << std::endl;
                     continue;
                 }
                 api.read(chat, id);
-                std::cout << "Marked message " << id << " in chat " << chat << " as read." << std::endl;
+                std::cout << "Сообщение с ID " << id << " в чате " << chat << " помечено как прочитанные." << std::endl;
                 continue;
             }
             #ifdef PULSAR_DEBUG
@@ -246,21 +247,21 @@ public:
             }
             #endif
             else if (message == "!help") {
-                std::cout << "\tAvailable commands:\n"
-                             "!exit                                         - Disconnect from server and exit client\n"
-                             "!dest <channel/user>                          - Set destination channel for messages\n"
-                             "!join <channel>                               - Join a channel\n"
-                             "!leave <channel>                              - Leave a channel\n"
-                             "!create <channel>                             - Create a new channel and join it\n"
-                             "!chat <channel/user>                          - Request chat history for a channel or user\n"
-                             "!profile <username>|edit                      - View or edit profile information\n"
-                             "!contact <add/rem> <username> <contact>       - Add or remove a contact\n"
-                             "!unread                                       - Display unread messages\n"
-                             "!read <chat> <id>|all                         - Mark a message by ID or all messages in a chat as read\n"
-                             "!help                                         - Show this help message\n"
-                             "\tDebug commands (only in debug builds):\n"
-                             "!l                                            - Show last server response\n"
-                             "!cldb                                         - Show local database contents\n"
+                std::cout << "\tДоступные команды:\n"
+                             "!exit                                         - Отключиться и выйти\n"
+                             "!dest <channel/user>                          - Сменить назначение сообщений\n"
+                             "!join <channel>                               - Присоединиться к каналу\n"
+                             "!leave <channel>                              - Покинуть канал\n"
+                             "!create <channel>                             - Создать канал\n"
+                             "!chat <channel/user>                          - Посмотреть историю чата\n"
+                             "!profile <username>|edit                      - Посмотреть или изменить профиль\n"
+                             "!contact <add/rem> <username> <contact>       - Добавить или удалить контакт\n"
+                             "!unread                                       - Посмотреть непрочитанные сообщения\n"
+                             "!read <chat> <id>|all                         - Прочитать сообщение по ID из чата\n"
+                             "!help                                         - Вывести это окно\n"
+                             "\tDebug-команды (доступны только в Debug-сборках):\n"
+                             "!l                                            - Последний ответ от сервера\n"
+                             "!cldb                                         - Клиентская база данных\n"
                 << std::flush;
                 continue;
             }

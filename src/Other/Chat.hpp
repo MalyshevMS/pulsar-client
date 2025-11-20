@@ -19,7 +19,7 @@ public:
     std::stringstream to_stream() {
         std::stringstream ss;
         for (auto i : messages) {
-            ss << "(time: " << i.get_time() << "; from: " << i.get_src() << "): " << i.get_msg() << std::endl;
+            ss << i << std::endl;
         }
         return ss;
     }

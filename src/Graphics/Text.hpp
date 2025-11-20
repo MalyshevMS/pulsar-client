@@ -19,12 +19,12 @@ std::vector < std::string > TextStyle = {"Normal", "Bold", "Underlined"};
 public:
     Text(std::string text, int size, sf::Color color, std::string user_font){
         sf::Font font;
-        if(!font.openFromFile(user_font+ std::to_string(".ttf"))){
-            std::cout <<"Error: Font loading error" << std::endl;
+        if(!font.openFromFile(user_font+ ".ttf")){
+            std::cout <<"Ошибка загрузки шрифта" << std::endl;
         }
         sf::Text MsgText(font);
         MsgText.setFillColor(color);
-        MsgText.setString(std::to_string(text));
+        MsgText.setString(text);
         
     }
 

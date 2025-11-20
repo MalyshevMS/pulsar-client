@@ -60,7 +60,7 @@ private:
             responses_cv.wait_for(lock, std::chrono::milliseconds(50));
         }
 
-        std::cout << "Timeout waiting for server response: " << expectedType << ", " << additional << std::endl;
+        std::cout << "Вышло время ожидания для запроса: " << expectedType << ", " << additional << std::endl;
         return "";
     }
 public:
@@ -82,7 +82,7 @@ public:
         if (!connected) return;
         connected = false;
         socket.disconnect();
-        std::cout << "Disconnected; Press any key to continue...";
+        std::cout << "Отключено от сервера. Нажмите любую клавишу, чтобы продолжить...";
         std::cin.get();
     }
 
@@ -110,7 +110,7 @@ public:
         std::string msg = jsonToString(json);
         
         if (socket.send(msg.data(), msg.size()) != sf::Socket::Status::Done) {
-            std::cout << "Error sending message" << std::endl;
+            std::cout << "Не удалось отправить сообщение" << std::endl;
             disconnect();
         }
     }
@@ -118,11 +118,11 @@ public:
     bool joinChannel(const std::string& channel) {
         auto response = request("join", channel, channel);
         if (response.find("+join") != std::string::npos && response.find(channel) != std::string::npos) {
-            std::cout << "Joined channel " << channel << std::endl;
+            std::cout << "Вы присоединились к каналу " << channel << std::endl;
             db.join(channel);
             return true;
         } else {
-            std::cout << "Failed to join channel " << channel << std::endl;
+            std::cout << "Не удалось присоединиться к каналу " << channel << std::endl;
             return false;
         }
     }
@@ -130,11 +130,11 @@ public:
     bool leaveChannel(const std::string& channel) {
         auto response = request("leave", channel, channel);
         if (response.find("+leave") != std::string::npos && response.find(channel) != std::string::npos) {
-            std::cout << "Left channel " << channel << std::endl;
+            std::cout << "Вы покинули канал " << channel << std::endl;
             db.leave(channel);
             return true;
         } else {
-            std::cout << "Failed to leave channel " << channel << std::endl;
+            std::cout << "Не удалось покинуть канал " << channel << std::endl;
             return false;
         }
     }
@@ -144,11 +144,11 @@ public:
 
         auto response = request("create", channel, channel);
         if (response.find("+create") != std::string::npos && response.find(channel) != std::string::npos) {
-            std::cout << "Created channel " << channel << std::endl;
+            std::cout << "Создан канал " << channel << std::endl;
             joinChannel(channel);
             return true;
         } else {
-            std::cout << "Failed to create channel " << channel << std::endl;
+            std::cout << "Не удалось создать канал " << channel << std::endl;
             return false;
         }
     }
@@ -158,11 +158,11 @@ public:
 
         auto response = request("db contact add", jsonToString(Json::array({username, contact})));
         if (response.find("+db contact add") != std::string::npos && response.find(username) != std::string::npos) {
-            std::cout << "Created contact " << '"' << contact << '"' << std::endl;
+            std::cout << "Создан контакт " << '"' << contact << '"' << std::endl;
             db.add_contact(username, contact);
             return true;
         } else {
-            std::cout << "Failed to create contact " << '"' << contact << '"' << std::endl;
+            std::cout << "Не удалось создать контакт " << '"' << contact << '"' << std::endl;
             return false;
         }
     }
@@ -172,11 +172,11 @@ public:
 
         auto response = request("db contact rem", contact);
         if (response.find("+db contact rem") != std::string::npos && response.find(contact) != std::string::npos) {
-            std::cout << "Deleted contact " << '"' << contact << '"' << std::endl;
+            std::cout << "Удален контакт " << '"' << contact << '"' << std::endl;
             db.remove_contact(contact);
             return true;
         } else {
-            std::cout << "Failed to deleted contact " << '"' << contact << '"' << std::endl;
+            std::cout << "Не удалось удалить контакт " << '"' << contact << '"' << std::endl;
             return false;
         }
     }
@@ -186,7 +186,7 @@ public:
 
         auto response = request("profile", jsonToString(Json::array({"set", name, profile.toJson()})));
         if (response.find("profile set") != std::string::npos && response.find(name) != std::string::npos) {
-            std::cout << "Profile updated" << std::endl;
+            std::cout << "Профиль обновлен" << std::endl;
         }
     }
 
@@ -205,13 +205,13 @@ public:
         if (response.find("login success") != std::string::npos) {
             return LoginResult::Success;
         } else if (response.find("login fail_username") != std::string::npos) {
-            std::cout << "Login failed: Incorrect username" << std::endl;
+            std::cout << "Ошибка входа: неверное имя пользователя" << std::endl;
             return LoginResult::Fail_Username;
         } else if (response.find("login fail_password") != std::string::npos) {
-            std::cout << "Login failed: Incorrect password" << std::endl;
+            std::cout << "Ошибка входа: неверный пароль" << std::endl;
             return LoginResult::Fail_Password;
         } else {
-            std::cout << "Login failed: Unknown error" << std::endl;
+            std::cout << "Ошибка входа: неизвестная ошибка" << std::endl;
             return LoginResult::Fail_Unknown;
         }
     }
@@ -222,10 +222,10 @@ public:
         if (response.find("+register") != std::string::npos) {
             return LoginResult::Success;
         } else if (response.find("-register") != std::string::npos) {
-            std::cout << "Register failed: User already exists" << std::endl;
+            std::cout << "Ошибка регистрации: пользователь уже существует" << std::endl;
             return LoginResult::Fail_Username;
         } else {
-            std::cout << "Register failed: Unknown error" << std::endl;
+            std::cout << "Ошибка регистрации: неизвестная ошибка" << std::endl;
             return LoginResult::Fail_Unknown;
         }
     }
@@ -246,7 +246,7 @@ public:
             db.init(json);
             return true;
         } catch (const std::exception& e) {
-            std::cout << "Error parsing database response: " << e.what() << std::endl;
+            std::cout << "Не удалось обработать запрос базы данных: " << e.what() << std::endl;
             return false;
         }
     }

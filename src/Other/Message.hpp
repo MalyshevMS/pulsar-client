@@ -59,7 +59,7 @@ public:
 
     friend std::ostream& operator<<(std::ostream& stream, Message& msg) {
         if (msg == PULSAR_NO_MESSAGE) return stream;
-        stream << "(" << msg.id << ")[" << Datetime(msg.datetime).toFormattedString() << " from " << msg.src << " to " << msg.dst << "]: " << msg.msg;
+        stream << "(" << msg.id << ")[" << Datetime(msg.datetime).toFormattedString() << " от " << msg.src << " в " << msg.dst << "]: " << msg.msg;
         return stream;
     }
 
