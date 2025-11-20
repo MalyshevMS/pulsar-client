@@ -32,7 +32,6 @@ private:
 
         std::unique_lock<std::mutex> lock(responses_mutex);
         while (std::chrono::steady_clock::now() < deadline) {
-            // search for a matching response in the stored responses
             for (auto it = server_responses.begin(); it != server_responses.end(); ++it) {
                 const std::string response = *it;
                 try {
@@ -43,7 +42,6 @@ private:
                         return out;
                     }
                 } catch (...) {
-                    // allow optional leading '+' or '-' from server responses (e.g. "+create ...")
                     bool starts = false;
                     if (response.size() >= expectedType.size() && response.substr(0, expectedType.size()) == expectedType) starts = true;
                     else if (response.size() >= expectedType.size() + 1 && (response[0] == '+' || response[0] == '-') && response.substr(1, expectedType.size()) == expectedType) starts = true;
@@ -59,7 +57,6 @@ private:
                 #endif
             }
 
-            // wait until new responses arrive or timeout approaches
             responses_cv.wait_for(lock, std::chrono::milliseconds(50));
         }
 
@@ -102,6 +99,7 @@ public:
         */
 
         auto json = Json({
+            // sending without id; server will assign one
             {"type", "message"},
             {"time", Datetime::now().toTime()},
             {"src", name},
@@ -282,9 +280,9 @@ public:
             json = Json::parse(msg);
             if (json["type"] == "error") {
                 std::cerr << "\nAn error has been occured!\nError source: " << json["src"] << "\nError text: " << json["msg"] << std::endl;
-                return Message(0, "!server", name, "error: " + std::string(json["msg"]));
+                return Message(0, 0, "!server", name, "error: " + std::string(json["msg"]));
             }
-            return db.contact(Message(json["time"], json["src"], json["dst"], json["msg"]));
+            return db.contact(Message(json["id"], json["time"], json["src"], json["dst"], json["msg"]));
         } catch (...) {
             return PULSAR_NO_MESSAGE;
         }
@@ -322,6 +320,11 @@ public:
             auto msg = chat.getByID(id);
             if (msg != PULSAR_NO_MESSAGE) db.store_unread(msg);
         }
+    }
+
+    void read(const std::string& chat, size_t id) {
+        db.read(chat, id);
+        request("read", jsonToString(Json::array({chat, id})));
     }
 
     void storeServerResponse(const std::string& response) {

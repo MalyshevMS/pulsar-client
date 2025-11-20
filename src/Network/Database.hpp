@@ -127,4 +127,22 @@ public:
         if (!db["users"][username].contains("unread")) return {};
         return db["users"][username]["unread"].get<std::vector<Json>>();
     }
+
+    void read(const std::string& chat, size_t id) {
+        if (!db["users"][username].contains("unread")) return;
+        auto items_copy = db["users"][username]["unread"].get<std::vector<Json>>();
+        db["users"][username]["unread"] = Json::array();
+        Message parser = PULSAR_NO_MESSAGE;
+        for (auto& item : items_copy) {
+            Message msg = parser.from_json(item);
+            if (msg.get_dst() == chat && msg.get_id() == id) {
+                continue;
+            }
+            db["users"][username]["unread"].push_back(item);
+        }
+    }
+
+    void clear_unread() {
+        db["users"][username]["unread"] = Json::array();
+    }
 };

@@ -11,8 +11,8 @@ private:
     std::string msg;
     std::string dst;
 public:
-    Message(time_t datetime, const std::string& src, const std::string& dst, const std::string& msg)
-     : datetime(datetime), src(src), dst(dst), msg(msg) {}
+    Message(size_t id, time_t datetime, const std::string& src, const std::string& dst, const std::string& msg)
+     : id(id), datetime(datetime), src(src), dst(dst), msg(msg) {}
 
     time_t get_time() { return datetime; }
     std::string get_src() { return src; }
@@ -22,6 +22,7 @@ public:
     Json to_json() const {
         return Json({
             {"time", datetime},
+            {"id", id},
             {"src", src},
             {"dst", dst},
             {"msg", msg}
@@ -29,6 +30,7 @@ public:
     }
 
     Message& from_json(const Json& json) {
+        id = json["id"];
         datetime = json["time"];
         src = json["src"];
         dst = json["dst"];
@@ -39,6 +41,7 @@ public:
 
     bool operator==(const Message& other) const {
         return (
+            id == other.id && \
             datetime == other.datetime && \
             src == other.src && \
             dst == other.dst && \
@@ -50,17 +53,13 @@ public:
         return !(*(this) == other);
     }
 
-    void set_id(size_t id) {
-        this->id = id;
-    }
-
     size_t get_id() const {
         return id;
     }
 
     friend std::ostream& operator<<(std::ostream& stream, Message& msg) {
         if (msg == PULSAR_NO_MESSAGE) return stream;
-        stream << "[time: " << msg.datetime << " | from " << msg.src << " to " << msg.dst << "]: " << msg.msg;
+        stream << "(" << msg.id << ")[time: " << msg.datetime << " | from " << msg.src << " to " << msg.dst << "]: " << msg.msg;
         return stream;
     }
 
@@ -73,8 +72,5 @@ static Message parse_line(const std::string& line, const std::string& destinatio
     auto l_src = line.substr(PULSAR_ID_SIZE + PULSAR_DATE_SIZE, PULSAR_USERNAME_SIZE);
     auto l_msg = line.substr(PULSAR_ID_SIZE + PULSAR_DATE_SIZE + PULSAR_USERNAME_SIZE, PULSAR_MESSAGE_SIZE);
 
-    auto ret = Message(atoll(l_time.c_str()), l_src, destination, l_msg);
-    ret.set_id(std::stoull(l_id));
-
-    return ret;
+    return Message(std::stoull(l_id), atoll(l_time.c_str()), l_src, destination, l_msg);
 }

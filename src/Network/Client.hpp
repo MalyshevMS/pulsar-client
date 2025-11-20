@@ -28,6 +28,18 @@ private:
     std::string password;
     PulsarAPI api;
     Window window;
+
+    void displayUnreadMessages() {
+        auto msgs = api.getUnread();
+        if (msgs.size() == 0) {
+            std::cout << "No unread messages." << std::endl;
+            return;
+        }
+        std::cout << "You have " << msgs.size() << " unread messages: " << std::endl;
+        for (auto i : msgs) {
+            std::cout << i << std::endl;
+        }
+    }
 public:
     Client(const std::string& name, const std::string& password_unhashed, const std::string& ip, unsigned short p)
      : name(name), serverIP(ip), port(p), connected(false), api(socket, name), window("Pulsar", 1280, 720) {
@@ -49,7 +61,7 @@ public:
     void disconnect() {
         connected = false;
         api.disconnect();
-        window.stop();
+        // window.stop();
         exit(0);
     }
     
@@ -195,11 +207,30 @@ public:
                 continue;
             }
             else if (message == "!unread") {
-                auto msgs = api.getUnread();
-                std::cout << "You have " << msgs.size() << " unread messages: " << std::endl;
-                for (auto i : msgs) {
-                    std::cout << i << std::endl;
+                displayUnreadMessages();
+                continue;
+            }
+            else if (message.substr(0, 5) == "!read") {
+                if (message.find(' ') == std::string::npos) {
+                    std::cout << "Usage: !read <chat> <id>" << std::endl;
+                    continue;
                 }
+                auto rest = message.substr(6);
+                if (rest.find(' ') == std::string::npos) {
+                    std::cout << "Usage: !read <chat> <id>" << std::endl;
+                    continue;
+                }
+                auto chat = rest.substr(0, rest.find(' '));
+                auto id_str = rest.substr(rest.find(' ') + 1);
+                size_t id = 0;
+                try {
+                    id = std::stoull(id_str);
+                } catch (...) {
+                    std::cout << "Invalid id: " << id_str << std::endl;
+                    continue;
+                }
+                api.read(chat, id);
+                std::cout << "Marked message " << id << " in chat " << chat << " as read." << std::endl;
                 continue;
             }
             #ifdef PULSAR_DEBUG
