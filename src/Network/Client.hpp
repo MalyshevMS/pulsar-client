@@ -117,6 +117,9 @@ public:
         api.requestDb();
         api.requestUnread();
         
+        displayUnreadMessages();
+        std::cout << "------------------------" << std::endl;
+        
         std::string message;
         dest = ":all";
         while (connected) {
@@ -126,6 +129,7 @@ public:
             if (!connected) break;
             
             if (message == "!exit") {
+                api.sendUnread();
                 std::cout << "Disconnecting..." << std::endl;
                 disconnect();
                 break;
@@ -216,11 +220,13 @@ public:
                     continue;
                 }
                 auto rest = message.substr(6);
-                if (rest.find(' ') == std::string::npos) {
-                    std::cout << "Usage: !read <chat> <id>" << std::endl;
+                auto chat = rest.substr(0, rest.find(' '));
+                if (chat == "all") {
+                    api.readAll(dest);
+                    std::cout << "Marked all messages in chat " << dest << " as read." << std::endl;
                     continue;
                 }
-                auto chat = rest.substr(0, rest.find(' '));
+
                 auto id_str = rest.substr(rest.find(' ') + 1);
                 size_t id = 0;
                 try {

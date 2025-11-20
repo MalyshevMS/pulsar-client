@@ -310,6 +310,18 @@ public:
         return ret;
     }
 
+    void sendUnread() {
+        auto unread = db.get_unread();
+        if (unread.size() == 0) return;
+
+        std::vector<Json> vec;
+        for (auto i : unread) {
+            vec.push_back(i);
+        }
+
+        request("unread", jsonToString(Json::array({vec})));
+    }
+
     void requestUnread() {
         auto response = request("db user", name); 
         std::vector<Json> vec = Json::parse(response.substr(8, std::string::npos))["unread"];
@@ -325,6 +337,17 @@ public:
     void read(const std::string& chat, size_t id) {
         db.read(chat, id);
         request("read", jsonToString(Json::array({chat, id})));
+    }
+
+    void readAll(const std::string& chat) {
+        auto unread = db.get_unread();
+        auto parser = PULSAR_NO_MESSAGE;
+        for (auto i : unread) {
+            auto msg = parser.from_json(i);
+            if (msg.get_dst() == chat) {
+                read(chat, msg.get_id());
+            }
+        }
     }
 
     void storeServerResponse(const std::string& response) {
