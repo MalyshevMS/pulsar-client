@@ -134,10 +134,6 @@ public:
                 disconnect();
                 break;
             }
-            else if (message == "!cldb") {
-                std::cout << api.getDbString() << std::endl;
-                continue;
-            }
             else if (message.substr(0, 5) == "!dest") {
                 if (!api.isChannelMember(message.substr(6))) continue;
                 dest = message.substr(6);
@@ -244,16 +240,28 @@ public:
                 std::cout << "\n[DEBUG]: " << api.getLastResponse() << std::endl;
                 continue;
             }
+            else if (message == "!cldb") {
+                std::cout << api.getDbString() << std::endl;
+                continue;
+            }
             #endif
             else if (message == "!help") {
-                std::cout << "Available commands:\n"
-                             "!exit                         - Disconnect from server and exit client\n"
-                             "!dest <channel/user>          - Set destination channel for messages\n"
-                             "!join <channel>               - Join a channel\n"
-                             "!leave <channel>              - Leave a channel\n"
-                             "!create <channel>             - Create a new channel and join it\n"
-                             "!chat <channel/user>          - Request chat history for a channel or user\n"
-                             "!help                         - Show this help message\n";
+                std::cout << "\tAvailable commands:\n"
+                             "!exit                                         - Disconnect from server and exit client\n"
+                             "!dest <channel/user>                          - Set destination channel for messages\n"
+                             "!join <channel>                               - Join a channel\n"
+                             "!leave <channel>                              - Leave a channel\n"
+                             "!create <channel>                             - Create a new channel and join it\n"
+                             "!chat <channel/user>                          - Request chat history for a channel or user\n"
+                             "!profile <username>|edit                      - View or edit profile information\n"
+                             "!contact <add/rem> <username> <contact>       - Add or remove a contact\n"
+                             "!unread                                       - Display unread messages\n"
+                             "!read <chat> <id>|all                         - Mark a message by ID or all messages in a chat as read\n"
+                             "!help                                         - Show this help message\n"
+                             "\tDebug commands (only in debug builds):\n"
+                             "!l                                            - Show last server response\n"
+                             "!cldb                                         - Show local database contents\n"
+                << std::flush;
                 continue;
             }
             
