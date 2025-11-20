@@ -1,5 +1,5 @@
 // #define PULSAR_DEBUG
-#define PULSAR_DEV
+// #define PULSAR_DEV
 #define PULSAR
 #define PULSAR_VERSION "v0.0.1"
 #define PULSAR_ID_SIZE 20
