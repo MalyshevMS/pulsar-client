@@ -11,7 +11,7 @@
 #include "../lib/hash.h"
 #include "../Other/Datetime.hpp"
 #include "../Other/Chat.hpp"
-#include "../Graphics/Window.hpp"
+#include "../Graphics/window.hpp"
 #include "../API/PulsarAPI.hpp"
 #include "Database.hpp"
 
