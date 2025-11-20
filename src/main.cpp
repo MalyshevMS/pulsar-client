@@ -3,10 +3,17 @@
 #include "Network/Client.hpp"
 
 #ifdef _WIN32
-#include <windows.h>
+#   include <windows.h>
+#endif
+
+#ifndef PULSAR_CHECKER_VERSION
+#   error Pulsar Checker not included!
 #endif
 
 int main(int argc, const char** argv) {
+
+
+
 #ifdef _WIN32
     SetConsoleCP(65001); // Russian UTF-8 support
     SetConsoleOutputCP(65001);
@@ -15,23 +22,23 @@ int main(int argc, const char** argv) {
     std::string name;
     std::string password;
     #ifndef PULSAR_IP_PRESET
-        std::cout << "Enter server IP (default " << PULSAR_IP_PRESET << "): ";
+        std::cout << "Введите IP-адрес сервера (по умолчанию 127.0.0.1): ";
         std::getline(std::cin, serverIP);
 
         if (serverIP.empty()) {
-            serverIP = PULSAR_IP_PRESET;
+            serverIP = "127.0.0.1";
         }
     #else
         serverIP = PULSAR_IP_PRESET;
     #endif
 
     if (argc <= 1) {
-        std::cout << "Enter username: ";
+        std::cout << "Введите имя пользователя: ";
         std::getline(std::cin, name);
     } else {
         name = "@" + std::string(argv[1]);
     }
-    std::cout << "Enter password (press ENTER if none was provided): ";
+    std::cout << "Введите пароль (нажмите ENTER если его нет): ";
     std::getline(std::cin, password);
 
     if (name[0] != '@') name = "@" + name;
@@ -40,6 +47,7 @@ int main(int argc, const char** argv) {
     Client client(name, password, serverIP, PULSAR_PORT);
     client.run();
     
-    std::cout << "Client terminated." << std::endl;
+    std::cout << "Клиент завершил свою работу." << std::endl;
+    
     return 0;
 }

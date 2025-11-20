@@ -1,6 +1,9 @@
 #pragma once
 
 #include "../lib/jsonlib.h"
+#include "../Other/Profile.hpp"
+#include "../Other/Message.hpp"
+#include "../defines"
 
 /*
     Client's Database structure (JSON):
@@ -14,6 +17,8 @@
                     "@username": "contact name (string)"
                 },
                 "email": "user's email (string)",
+                "birthday": user's birthday (0 if nothings set),
+                "description": "description (string)",
                 "status": "active/inactive/banned (string)"
             }
             in client's database the user's count will be always 1
@@ -25,6 +30,8 @@ class Database {
 private:
     Json db;
     std::string username;
+    using Key = const std::string&;
+    using Str = const std::string&;
 public:
     Database(const std::string& username) : username(username) {
         db = Json({
@@ -74,5 +81,68 @@ public:
                 db["users"][username]["channels"].push_back(i);
             }
         }
+    }
+
+    void add_contact(Key username, Str contact) {
+        db["users"][this->username]["contacts"][username] = contact;
+    }
+
+    void remove_contact(Key contact) {
+        if (!db["users"][username]["contacts"].contains(contact)) return;
+        auto items_copy = db["users"][username]["contacts"].items();
+        db["users"][username]["contacts"] = Json::object();
+        for (auto& [key, val] : items_copy) {
+            if (key != contact) db["users"][username]["contacts"][key] = val;
+        }
+    }
+
+    std::string contact(Key contact) {
+        if (!db["users"][username]["contacts"].contains(contact)) return PULSAR_NO_CONTACT;
+
+        return db["users"][username]["contacts"][contact];
+    }
+
+    Message contact(const Message& msg) {
+        Message new_msg = msg;
+        std::string contact_name = contact(msg.src);
+        if (contact_name != PULSAR_NO_CONTACT) {
+            new_msg.src = contact_name;
+        }
+        return new_msg;
+    }
+
+    void update_profile(const Profile& profile) {
+        db["users"][username]["description"] = profile.description();
+        db["users"][username]["email"] = profile.email();
+        db["users"][username]["name"] = profile.realName();
+        db["users"][username]["birthday"] = profile.birthday().toTime();
+    }
+
+    void store_unread(const Message& msg) {
+        if (msg == PULSAR_NO_MESSAGE) return;
+        db["users"][username]["unread"].push_back(msg.to_json());
+    }
+
+    std::vector<Json> get_unread() {
+        if (!db["users"][username].contains("unread")) return {};
+        return db["users"][username]["unread"].get<std::vector<Json>>();
+    }
+
+    void read(const std::string& chat, size_t id) {
+        if (!db["users"][username].contains("unread")) return;
+        auto items_copy = db["users"][username]["unread"].get<std::vector<Json>>();
+        db["users"][username]["unread"] = Json::array();
+        Message parser = PULSAR_NO_MESSAGE;
+        for (auto& item : items_copy) {
+            Message msg = parser.from_json(item);
+            if (msg.get_dst() == chat && msg.get_id() == id) {
+                continue;
+            }
+            db["users"][username]["unread"].push_back(item);
+        }
+    }
+
+    void clear_unread() {
+        db["users"][username]["unread"] = Json::array();
     }
 };
