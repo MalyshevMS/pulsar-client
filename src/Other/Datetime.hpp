@@ -49,7 +49,11 @@ public:
 
     static Datetime fromString(const std::string& str) {
         auto dt = Datetime();
-        dt.t_now = std::stoull(str);
+        try {
+            dt.t_now = std::stoull(str);
+        } catch (...) {
+            dt.t_now = time(nullptr);
+        }
         dt.localTime = localtime(&dt.t_now);
         return dt;
     }

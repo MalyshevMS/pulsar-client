@@ -1,6 +1,8 @@
 #include "defines"
 #include "API/PulsarAPI.hpp"
 #include "Network/Client.hpp"
+#include <exception>
+#include <csignal>
 
 #ifdef _WIN32
 #   include <windows.h>
@@ -11,6 +13,27 @@
 #endif
 
 int main(int argc, const char** argv) {
+
+    // Install a terminate handler to log unexpected terminations and abort
+    std::set_terminate([]() {
+        try {
+            std::exception_ptr eptr = std::current_exception();
+            if (eptr) {
+                try { std::rethrow_exception(eptr); }
+                catch (const std::exception& e) {
+                    std::cerr << "terminate() called after throwing an exception: " << e.what() << std::endl;
+                } catch (...) {
+                    std::cerr << "terminate() called after throwing unknown exception" << std::endl;
+                }
+            } else {
+                std::cerr << "terminate() called without an active exception" << std::endl;
+            }
+        } catch (...) {}
+        // Trigger abort to capture backtrace when running under gdb
+        std::raise(SIGABRT);
+        std::abort();
+    });
+
 
 
 

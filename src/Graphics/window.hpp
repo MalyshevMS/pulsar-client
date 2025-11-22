@@ -14,6 +14,8 @@ public:
     }
 
     virtual void draw() override {
-    
+        sf::CircleShape shape(50);
+        shape.setFillColor(sf::Color::Green);
+        win->draw(shape);
     }
 };

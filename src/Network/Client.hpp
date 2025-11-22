@@ -67,8 +67,10 @@ public:
     void disconnect() {
         connected = false;
         api.disconnect();
-        window.stop();
-        if (receiveThread.joinable()) receiveThread.join();
+        try { window.stop(); } catch (...) {}
+        if (receiveThread.joinable()) {
+            receiveThread.join();
+        }
     }
 
     ~Client() {
@@ -87,20 +89,26 @@ public:
     }
     
     void receiveMessages() {
-        while (connected) {
-            auto msg = api.receiveLastMessage();
+        try {
+            while (connected) {
+                auto msg = api.receiveLastMessage();
 
-            if (msg.get_src() == "!server") {
-                api.storeServerResponse(msg.get_msg());
-            } else if (login_success) {
-                if ((msg.get_dst() == dest || msg.get_dst() == name)) {
-                    std::cout << msg << std::endl;
-                } else {
-                    api.storeUnread(msg);
+                if (msg.get_src() == "!server") {
+                    api.storeServerResponse(msg.get_msg());
+                } else if (login_success) {
+                    if ((msg.get_dst() == dest || msg.get_dst() == name)) {
+                        std::cout << msg << std::endl;
+                    } else {
+                        api.storeUnread(msg);
+                    }
                 }
+
+                sf::sleep(sf::milliseconds(100));
             }
-            
-            sf::sleep(sf::milliseconds(100));
+        } catch (const std::exception& e) {
+            std::cerr << "Exception in receiveMessages: " << e.what() << std::endl;
+        } catch (...) {
+            std::cerr << "Unknown exception in receiveMessages" << std::endl;
         }
     }
     
