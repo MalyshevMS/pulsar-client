@@ -1,10 +1,11 @@
 #pragma once
 
 #include "WindowBase.hpp"
+#include "Chatlist.hpp"
 
 class Window : public WindowBase {
 private:
-
+    Chatlist chatlist = Chatlist({"Alice", "Bob", "Charlie Kirk", "Diana", "Eve", "Frank", "Grace", "Heidi", "Ivan", "Klyde", "Kevin"});
 public:
     Window(const std::string& title, unsigned int width, unsigned int height)
      : WindowBase(title, width, height) {}
@@ -14,8 +15,6 @@ public:
     }
 
     virtual void draw() override {
-        sf::CircleShape shape(50);
-        shape.setFillColor(sf::Color::Green);
-        win->draw(shape);
+        chatlist.draw(*win);
     }
 };
