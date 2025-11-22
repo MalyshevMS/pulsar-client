@@ -41,6 +41,12 @@ public:
         return t_now;
     }
 
+    std::string toFormattedString() const {
+        char buffer[20];
+        strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", localTime);
+        return std::string(buffer);
+    }
+
     static Datetime fromString(const std::string& str) {
         auto dt = Datetime();
         dt.t_now = std::stoull(str);
