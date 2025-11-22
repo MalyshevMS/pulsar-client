@@ -1,76 +1,116 @@
 #pragma once
+
 #include <string>
 #include <thread>
+#include <memory>
+#include <atomic>
+#include <mutex>
 #include <SFML/Graphics.hpp>
-
-#pragma GCC diagnostic ignored "-Wunused-result"
+#include <functional>
 
 class Window {
 private:
-    unsigned int width; // ГИПОТАЛАМУС
+    unsigned int width;
     unsigned int height;
     std::string title;
-    sf::RenderWindow* win;
-    bool fullscreen = false;
-    bool running = false;
-    double dt = 0.0f;
-    double LastTime = 0.0f;
-    double CurrentTime = 0.0f;
-    enum class CursorState {
-        standart,
-        pointer,
-        text,
-        notAllowed
-    };
+
+    std::unique_ptr<sf::RenderWindow> win;
+    std::atomic<bool> running{false};
     std::thread winThread;
+    std::mutex winMutex;
+    std::function<void()> onClose;
 
 public:
     Window(const std::string& title, unsigned int width, unsigned int height)
-     : title(title), width(width), height(height) {
-        
-    }
+        : title(title), width(width), height(height) {}
 
     ~Window() {
         stop();
     }
 
-    void proceedEvent(const std::optional<sf::Event> event) {
-        // TODO: обработка событий тут
+    virtual void proceedEvent(const sf::Event& event) {
+        
     }
 
-    void draw() {
-        // TODO: отрисовка через win->draw(...)
+    virtual void draw() {
     }
 
+private:
     void loop() {
-        sf::RenderWindow window(sf::VideoMode({width, height}), title);
-        win = &window;
-        while (running && window.isOpen()) {
-            if (const std::optional event = window.pollEvent()) {
-                if (event->is<sf::Event::Closed>()) {
-                    stop();
+        {
+            std::lock_guard<std::mutex> lk(winMutex);
+            win = std::make_unique<sf::RenderWindow>(sf::VideoMode({width, height}), title);
+        }
+
+        while (running.load()) {
+            std::optional<sf::Event> eventOpt;
+            bool closedRequested = false;
+            {
+                std::lock_guard<std::mutex> lk(winMutex);
+                if (!win || !win->isOpen()) break;
+                while ((eventOpt = win->pollEvent())) {
+                    const sf::Event& event = *eventOpt;
+                    if (event.is<sf::Event::Closed>()) {
+                        closedRequested = true;
+                        break;
+                    }
+                    proceedEvent(event);
                 }
-                proceedEvent(event);
+
+                win->clear(sf::Color::Black);
+                draw();
+                win->display();
             }
 
-            window.clear();
-            draw();
-            window.display();
+            if (closedRequested) {
+                if (onClose) {
+                    onClose();
+                } else {
+                    std::lock_guard<std::mutex> lk(winMutex);
+                    if (win && win->isOpen()) {
+                        running.store(false);
+                        win->close();
+                    }
+                }
+            }
+
+            sf::sleep(sf::milliseconds(10));
+        }
+
+        {
+            std::lock_guard<std::mutex> lk(winMutex);
+            if (win && win->isOpen()) win->close();
+            win.reset();
         }
     }
 
+public:
     void run() {
-        running = true;
+        bool expected = false;
+        if (!running.compare_exchange_strong(expected, true)) return;
         winThread = std::thread(&Window::loop, this);
     }
-    
+
     void stop() {
-        running = false;
-        if (win->isOpen())
-            win->close();
+        bool expected = true;
+        if (!running.compare_exchange_strong(expected, false)) return;
+
+        if (winThread.joinable()) {
+            if (std::this_thread::get_id() == winThread.get_id()) {
+                try {
+                    winThread.detach();
+                } catch (...) {}
+            } else {
+                winThread.join();
+            }
+        }
     }
-    
+
     bool isRunning() const {
-        return running;
+        return running.load();
+    }
+
+    void setOnClose(std::function<void()> cb) {
+        onClose = std::move(cb);
     }
 };

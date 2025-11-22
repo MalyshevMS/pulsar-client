@@ -82,8 +82,7 @@ public:
         if (!connected) return;
         connected = false;
         socket.disconnect();
-        std::cout << "Отключено от сервера. Нажмите любую клавишу, чтобы продолжить...";
-        std::cin.get();
+        std::cout << "Отключено от сервера." << std::endl;
     }
 
     void sendMessage(const std::string& message, const std::string& dest) {
