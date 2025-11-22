@@ -9,7 +9,7 @@
 #include <functional>
 
 class WindowBase {
-private:
+protected:
     unsigned int width;
     unsigned int height;
     std::string title;
@@ -28,12 +28,9 @@ public:
         stop();
     }
 
-    virtual void proceedEvent(const sf::Event& event) {
-        
-    }
+    virtual void proceedEvent(const sf::Event& event) {}
 
-    virtual void draw() {
-    }
+    virtual void draw() {}
 
 private:
     void loop() {
