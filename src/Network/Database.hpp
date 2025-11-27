@@ -2,6 +2,8 @@
 
 #include "../lib/jsonlib.h"
 #include "../Other/Profile.hpp"
+#include "../Other/Message.hpp"
+#include "../defines"
 
 /*
     Client's Database structure (JSON):
@@ -100,10 +102,47 @@ public:
         return db["users"][username]["contacts"][contact];
     }
 
+    Message contact(const Message& msg) {
+        Message new_msg = msg;
+        std::string contact_name = contact(msg.src);
+        if (contact_name != PULSAR_NO_CONTACT) {
+            new_msg.src = contact_name;
+        }
+        return new_msg;
+    }
+
     void update_profile(const Profile& profile) {
         db["users"][username]["description"] = profile.description();
         db["users"][username]["email"] = profile.email();
         db["users"][username]["name"] = profile.realName();
         db["users"][username]["birthday"] = profile.birthday().toTime();
+    }
+
+    void store_unread(const Message& msg) {
+        if (msg == PULSAR_NO_MESSAGE) return;
+        db["users"][username]["unread"].push_back(msg.to_json());
+    }
+
+    std::vector<Json> get_unread() {
+        if (!db["users"][username].contains("unread")) return {};
+        return db["users"][username]["unread"].get<std::vector<Json>>();
+    }
+
+    void read(const std::string& chat, size_t id) {
+        if (!db["users"][username].contains("unread")) return;
+        auto items_copy = db["users"][username]["unread"].get<std::vector<Json>>();
+        db["users"][username]["unread"] = Json::array();
+        Message parser = PULSAR_NO_MESSAGE;
+        for (auto& item : items_copy) {
+            Message msg = parser.from_json(item);
+            if (msg.get_dst() == chat && msg.get_id() == id) {
+                continue;
+            }
+            db["users"][username]["unread"].push_back(item);
+        }
+    }
+
+    void clear_unread() {
+        db["users"][username]["unread"] = Json::array();
     }
 };

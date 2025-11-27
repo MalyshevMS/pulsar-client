@@ -24,7 +24,7 @@ public:
         sf::Font font;
         if (!font.openFromFile(user_font + ".ttf"))
         {
-            std::cout << "Error: Font loading error" << std::endl;
+            std::cout << "Ошибка загрузки шрифта" << std::endl;
         }
         sf::Text MsgText(font);
         MsgText.setFillColor(color);
