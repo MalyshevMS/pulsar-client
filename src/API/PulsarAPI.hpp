@@ -316,7 +316,10 @@ public:
 
         std::vector<Json> vec;
         for (auto i : unread) {
-            vec.push_back(i);
+            Json payload;
+            payload["id"] = i["id"];
+            payload["dst"] = i["dst"];
+            vec.push_back(payload);
         }
 
         request("unread", jsonToString(Json::array({vec})));
