@@ -11,7 +11,7 @@
 #include "../lib/hash.h"
 #include "../Other/Datetime.hpp"
 #include "../Other/Chat.hpp"
-#include "../Graphics/window.hpp"
+#include "../Graphics/Window.hpp"
 #include "../API/PulsarAPI.hpp"
 #include "Database.hpp"
 
@@ -45,6 +45,12 @@ public:
      : name(name), serverIP(ip), port(p), connected(false), api(socket, name), window("Pulsar", 1280, 720) {
         if (password_unhashed.size() > 0) password = hash(password_unhashed);
         else password = "";
+
+        window.setOnClose([this]() {
+            std::thread([this]() {
+                this->disconnect();
+            }).detach();
+        });
     }
     
     bool connectToServer() {
@@ -61,26 +67,48 @@ public:
     void disconnect() {
         connected = false;
         api.disconnect();
-        // window.stop();
-        exit(0);
+        try { window.stop(); } catch (...) {}
+        if (receiveThread.joinable()) {
+            receiveThread.join();
+        }
+    }
+
+    ~Client() {
+        connected = false;
+        try {
+            api.disconnect();
+        } catch (...) {}
+        try {
+            window.stop();
+        } catch (...) {}
+        if (receiveThread.joinable()) {
+            try {
+                receiveThread.join();
+            } catch (...) {}
+        }
     }
     
     void receiveMessages() {
-        while (connected) {
-            auto msg = api.receiveLastMessage();
+        try {
+            while (connected) {
+                auto msg = api.receiveLastMessage();
 
-            if (msg.get_src() == "!server") {
-                api.storeServerResponse(msg.get_msg());
-            } else if (login_success) {
-                if ((msg.get_dst() == dest || msg.get_dst() == name)) {
-                    std::cout << '\n' << msg << std::endl;
-                    std::cout << "\r[" << name << "](" << dest << ") > " << std::flush;
-                } else {
-                    api.storeUnread(msg);
+                if (msg.get_src() == "!server") {
+                    api.storeServerResponse(msg.get_msg());
+                } else if (login_success) {
+                    if ((msg.get_dst() == dest || msg.get_dst() == name)) {
+                        std::cout << msg << std::endl;
+                    } else {
+                        api.storeUnread(msg);
+                    }
                 }
+
+                sf::sleep(sf::milliseconds(100));
             }
-            
-            sf::sleep(sf::milliseconds(100));
+        } catch (const std::exception& e) {
+            std::cerr << "Exception in receiveMessages: " << e.what() << std::endl;
+        } catch (...) {
+            std::cerr << "Unknown exception in receiveMessages" << std::endl;
         }
     }
     
@@ -89,7 +117,7 @@ public:
             return;
         }
 
-        // window.run();
+        window.run();
         
         receiveThread = std::thread(&Client::receiveMessages, this);
 
@@ -112,11 +140,13 @@ public:
         std::cout << "Подключено к серверу! Наберите свои сообщения ниже." << std::endl;
         std::cout << "Наберите '!exit' чтобы выйти или '!help' чтобы посмотреть полный список команд." << std::endl;
         std::cout << "Вы вошли в Pulsar как '" << name << "'." << std::endl;
-        std::cout << "------------------------" << std::endl;
-
+        
         api.requestDb();
         api.requestUnread();
         
+        #ifndef PULSAR_GUI
+        // todo: move this to GUI or in separate console function/window
+        std::cout << "------------------------" << std::endl;
         displayUnreadMessages();
         std::cout << "------------------------" << std::endl;
         
@@ -270,5 +300,10 @@ public:
                 api.sendMessage(message, dest);
             }
         }
+        #else
+            while (window.isRunning()) {
+                sf::sleep(sf::milliseconds(100));
+            }
+        #endif
     }
 };

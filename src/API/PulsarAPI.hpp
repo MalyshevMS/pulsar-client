@@ -82,8 +82,7 @@ public:
         if (!connected) return;
         connected = false;
         socket.disconnect();
-        std::cout << "Отключено от сервера. Нажмите любую клавишу, чтобы продолжить...";
-        std::cin.get();
+        std::cout << "Отключено от сервера." << std::endl;
     }
 
     void sendMessage(const std::string& message, const std::string& dest) {
@@ -193,7 +192,16 @@ public:
     Profile getProfile(const std::string& username) {
         auto response = request("profile", jsonToString(Json::array({"get", username})));
         if (response.find("profile get") != std::string::npos) {
-            return Profile::fromJson(Json::parse(response.substr(12)));
+            try {
+                auto parsed = Json::parse(response.substr(12));
+                return Profile::fromJson(parsed);
+            } catch (const std::exception& e) {
+                std::cerr << "Failed to parse profile JSON: " << e.what() << std::endl;
+                return PULSAR_NO_PROFILE;
+            } catch (...) {
+                std::cerr << "Unknown error parsing profile JSON" << std::endl;
+                return PULSAR_NO_PROFILE;
+            }
         } else {
             return PULSAR_NO_PROFILE;
         }
@@ -232,11 +240,22 @@ public:
 
     Chat getChat(const std::string& channel) {
         if (!Checker::checkChannelName(channel) && channel[0] != '@') PULSAR_THROW ChannelNameFailed(channel);
-
         auto response = request("chat", channel, channel);
-        auto json = Json::parse(response.substr(5, std::string::npos));
-        std::vector<std::string> vec = json["chat"];
-        return Chat(json["name"], vec);
+        try {
+            auto json = Json::parse(response.substr(5, std::string::npos));
+            if (!json.contains("chat") || !json.contains("name")) {
+                std::cerr << "Malformed chat response: " << response << std::endl;
+                return Chat("", {});
+            }
+            std::vector<std::string> vec = json["chat"];
+            return Chat(json["name"], vec);
+        } catch (const std::exception& e) {
+            std::cerr << "Failed to parse chat JSON: " << e.what() << " Response: " << response << std::endl;
+            return Chat("", {});
+        } catch (...) {
+            std::cerr << "Unknown error parsing chat JSON. Response: " << response << std::endl;
+            return Chat("", {});
+        }
     }
 
     bool requestDb() {
@@ -247,6 +266,9 @@ public:
             return true;
         } catch (const std::exception& e) {
             std::cout << "Не удалось обработать запрос базы данных: " << e.what() << std::endl;
+            return false;
+        } catch (...) {
+            std::cout << "Не удалось обработать запрос базы данных: неизвестная ошибка" << std::endl;
             return false;
         }
     }
@@ -272,18 +294,22 @@ public:
         std::size_t received;
         if (socket.receive(buffer, sizeof(buffer), received) != sf::Socket::Status::Done) {
             disconnect();
+            return PULSAR_NO_MESSAGE;
         }
 
         std::string msg(buffer, received);
-        Json json;
         try {
-            json = Json::parse(msg);
-            if (json["type"] == "error") {
+            Json json = Json::parse(msg);
+            if (json.contains("type") && json["type"] == "error") {
                 std::cerr << "\nAn error has been occured!\nError source: " << json["src"] << "\nError text: " << json["msg"] << std::endl;
                 return Message(0, 0, "!server", name, "error: " + std::string(json["msg"]));
             }
             return db.contact(Message(json["id"], json["time"], json["src"], json["dst"], json["msg"]));
+        } catch (const std::exception& e) {
+            std::cerr << "Failed to parse incoming message JSON: " << e.what() << "\nRaw: " << msg << std::endl;
+            return PULSAR_NO_MESSAGE;
         } catch (...) {
+            std::cerr << "Unknown error parsing incoming message. Raw: " << msg << std::endl;
             return PULSAR_NO_MESSAGE;
         }
     }
@@ -326,14 +352,24 @@ public:
     }
 
     void requestUnread() {
-        auto response = request("db user", name); 
-        std::vector<Json> vec = Json::parse(response.substr(8, std::string::npos))["unread"];
-        for (auto json : vec) {
-            std::string chat_str = json["chat"];
-            size_t id = json["id"];
-            auto chat = getChat(chat_str);
-            auto msg = chat.getByID(id);
-            if (msg != PULSAR_NO_MESSAGE) db.store_unread(msg);
+        auto response = request("db user", name);
+        try {
+            auto parsed = Json::parse(response.substr(8, std::string::npos));
+            if (!parsed.contains("unread")) return;
+            std::vector<Json> vec = parsed["unread"];
+            for (auto json : vec) {
+                std::string chat_str = json["chat"];
+                size_t id = json["id"];
+                auto chat = getChat(chat_str);
+                auto msg = chat.getByID(id);
+                if (msg != PULSAR_NO_MESSAGE) db.store_unread(msg);
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "Failed to parse unread list JSON: " << e.what() << " Response: " << response << std::endl;
+            return;
+        } catch (...) {
+            std::cerr << "Unknown error parsing unread list. Response: " << response << std::endl;
+            return;
         }
     }
 
