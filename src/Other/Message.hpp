@@ -14,10 +14,10 @@ public:
     Message(size_t id, time_t datetime, const std::string& src, const std::string& dst, const std::string& msg)
      : id(id), datetime(datetime), src(src), dst(dst), msg(msg) {}
 
-    time_t get_time() { return datetime; }
-    std::string get_src() { return src; }
-    std::string get_dst() { return dst; }
-    std::string get_msg() { return msg; }
+    time_t get_time() const { return datetime; }
+    std::string get_src() const { return src; }
+    std::string get_dst() const { return dst; }
+    std::string get_msg() const { return msg; }
 
     Json to_json() const {
         return Json({
@@ -59,6 +59,7 @@ public:
 
     friend std::ostream& operator<<(std::ostream& stream, Message& msg) {
         if (msg == PULSAR_NO_MESSAGE) return stream;
+        if (msg.msg.back() == '\n') msg.msg.pop_back();
         stream << "(" << msg.id << ")[" << Datetime(msg.datetime).toFormattedString() << " от " << msg.src << " в " << msg.dst << "]: " << msg.msg;
         return stream;
     }
@@ -69,27 +70,8 @@ public:
 static Message parse_line(const std::string& line, const std::string& destination) {
     auto l_id = line.substr(0, PULSAR_ID_SIZE);
     auto l_time = line.substr(PULSAR_ID_SIZE, PULSAR_DATE_SIZE);
-    auto l_src = line.substr(PULSAR_ID_SIZE + PULSAR_DATE_SIZE, PULSAR_USERNAME_SIZE);
-    auto l_msg = line.substr(PULSAR_ID_SIZE + PULSAR_DATE_SIZE + PULSAR_USERNAME_SIZE, PULSAR_MESSAGE_SIZE);
-    try {
-        size_t id = 0;
-        time_t t = 0;
-        try {
-            id = std::stoull(l_id);
-        } catch (...) {
-            return PULSAR_NO_MESSAGE;
-        }
+    auto l_src = line.substr(PULSAR_ID_SIZE + PULSAR_DATE_SIZE, line.find(PULSAR_SEP) - (PULSAR_ID_SIZE + PULSAR_DATE_SIZE));
+    auto l_msg = line.substr(line.find(PULSAR_SEP) + 1);
 
-        // atoll is tolerant, but try to parse safely as unsigned long long
-        try {
-            t = static_cast<time_t>(std::stoull(l_time));
-        } catch (...) {
-            // fallback to atoll which returns 0 on error
-            t = atoll(l_time.c_str());
-        }
-
-        return Message(id, t, l_src, destination, l_msg);
-    } catch (...) {
-        return PULSAR_NO_MESSAGE;
-    }
+    return Message(std::stoull(l_id), atoll(l_time.c_str()), l_src, destination, l_msg);
 }
