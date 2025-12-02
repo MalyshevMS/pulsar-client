@@ -70,32 +70,8 @@ public:
 static Message parse_line(const std::string& line, const std::string& destination) {
     auto l_id = line.substr(0, PULSAR_ID_SIZE);
     auto l_time = line.substr(PULSAR_ID_SIZE, PULSAR_DATE_SIZE);
-<<<<<<< HEAD
     auto l_src = line.substr(PULSAR_ID_SIZE + PULSAR_DATE_SIZE, line.find(PULSAR_SEP) - (PULSAR_ID_SIZE + PULSAR_DATE_SIZE));
     auto l_msg = line.substr(line.find(PULSAR_SEP) + 1);
-=======
-    auto l_src = line.substr(PULSAR_ID_SIZE + PULSAR_DATE_SIZE, PULSAR_USERNAME_SIZE);
-    auto l_msg = line.substr(PULSAR_ID_SIZE + PULSAR_DATE_SIZE + PULSAR_USERNAME_SIZE, PULSAR_MESSAGE_SIZE);
-    try {
-        size_t id = 0;
-        time_t t = 0;
-        try {
-            id = std::stoull(l_id);
-        } catch (...) {
-            return PULSAR_NO_MESSAGE;
-        }
->>>>>>> origin/graphics
 
-        // atoll is tolerant, but try to parse safely as unsigned long long
-        try {
-            t = static_cast<time_t>(std::stoull(l_time));
-        } catch (...) {
-            // fallback to atoll which returns 0 on error
-            t = atoll(l_time.c_str());
-        }
-
-        return Message(id, t, l_src, destination, l_msg);
-    } catch (...) {
-        return PULSAR_NO_MESSAGE;
-    }
+    return Message(std::stoull(l_id), atoll(l_time.c_str()), l_src, destination, l_msg);
 }
