@@ -83,6 +83,7 @@ public:
         connected = false;
         socket.disconnect();
         std::cout << "Отключено от сервера." << std::endl;
+        exit(0);
     }
 
     void sendMessage(const std::string& message, const std::string& dest) {

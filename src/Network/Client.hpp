@@ -11,6 +11,7 @@
 #include "../lib/hash.h"
 #include "../Other/Datetime.hpp"
 #include "../Other/Chat.hpp"
+#include "../Other/Fastfetch.hpp"
 #include "../Graphics/Window.hpp"
 #include "../API/PulsarAPI.hpp"
 #include "Database.hpp"
@@ -79,7 +80,9 @@ public:
             api.disconnect();
         } catch (...) {}
         try {
+#ifdef PULSAR_GUI
             window.stop();
+#endif
         } catch (...) {}
         if (receiveThread.joinable()) {
             try {
@@ -97,7 +100,8 @@ public:
                     api.storeServerResponse(msg.get_msg());
                 } else if (login_success) {
                     if ((msg.get_dst() == dest || msg.get_dst() == name)) {
-                        std::cout << msg << std::endl;
+                        std::cout << "\r\x1b[K" << msg << std::endl;
+                        std::cout << "[" << name << "](" << dest << ") > " << std::flush;
                     } else {
                         api.storeUnread(msg);
                     }
@@ -117,7 +121,9 @@ public:
             return;
         }
 
-        window.run();
+        #ifdef PULSAR_GUI
+            window.run();
+        #endif
         
         receiveThread = std::thread(&Client::receiveMessages, this);
 
@@ -153,7 +159,7 @@ public:
         std::string message;
         dest = ":all";
         while (connected) {
-            std::cout << "\r[" << name << "](" << dest << ") > " << std::flush;
+            std::cout << "[" << name << "](" << dest << ") > " << std::flush;
             std::getline(std::cin, message);
             
             if (!connected) break;
@@ -227,6 +233,7 @@ public:
 
                     api.updateProfile(Profile(description, email, realName, Datetime(birthday)));
                 } else {
+                    std::cout << "Если вы ожидаете слишком долго, значит профиля не существует." << std::endl;
                     auto profile = api.getProfile(arg);
                     std::cout << "Профиль пользователя " << arg << ":" \
                     << "\n\tОписание: " << profile.description() \
@@ -266,6 +273,15 @@ public:
                 std::cout << "Сообщение с ID " << id << " в чате " << chat << " помечено как прочитанные." << std::endl;
                 continue;
             }
+            else if (message == "!fastfetch") {
+                const std::vector<std::string> info = {
+                    "Pulsar Client " + std::string(PULSAR_VERSION),
+                    "Пользователь: " + name,
+                    "Сервер: " + serverIP + ":" + std::to_string(port)
+                };
+                fastfetch(info);
+                continue;
+            }
             #ifdef PULSAR_DEBUG
             else if (message == "!l") {
                 std::cout << "\n[DEBUG]: " << api.getLastResponse() << std::endl;
@@ -288,6 +304,7 @@ public:
                              "!contact <add/rem> <username> <contact>       - Добавить или удалить контакт\n"
                              "!unread                                       - Посмотреть непрочитанные сообщения\n"
                              "!read <chat> <id>|all                         - Прочитать сообщение по ID из чата\n"
+                             "!fastfetch                                    - Вывести информацию о клиенте\n"
                              "!help                                         - Вывести это окно\n"
                              "\tDebug-команды (доступны только в Debug-сборках):\n"
                              "!l                                            - Последний ответ от сервера\n"
