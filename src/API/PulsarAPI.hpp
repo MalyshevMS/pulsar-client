@@ -302,7 +302,7 @@ public:
         try {
             Json json = Json::parse(msg);
             if (json.contains("type") && json["type"] == "error") {
-                std::cerr << "\nAn error has been occured!\nError source: " << json["src"] << "\nError text: " << json["msg"] << std::endl;
+                std::cerr << "\nAn error has been occured!\nError source: " << json["src"] << "\nError text: " << json["msg"] << "\nPress ENTER to continue." << std::endl;
                 return Message(0, 0, "!server", name, "error: " + std::string(json["msg"]));
             }
             return db.contact(Message(json["id"], json["time"], json["src"], json["dst"], json["msg"]));
