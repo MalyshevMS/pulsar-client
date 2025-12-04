@@ -1,0 +1,6 @@
+#define PULSAR_EXIT_CODE_SUCCESS            0 << 0
+#define PULSAR_EXIT_CODE_FAILURE            1 << 0
+#define PULSAR_EXIT_CODE_DISCONNECT         1 << 1
+#define PULSAR_EXIT_CODE_INVALID_ARGS       1 << 2
+#define PULSAR_EXIT_CODE_INVALID_COMMAND    1 << 3
+#define PULSAR_EXIT_CODE_NOT_A_MEMBER       1 << 4

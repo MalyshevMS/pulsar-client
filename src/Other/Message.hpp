@@ -57,10 +57,17 @@ public:
         return id;
     }
 
-    friend std::ostream& operator<<(std::ostream& stream, Message& msg) {
-        if (msg == PULSAR_NO_MESSAGE) return stream;
-        if (msg.msg.back() == '\n') msg.msg.pop_back();
-        stream << "(" << msg.id << ")[" << Datetime(msg.datetime).toFormattedString() << " от " << msg.src << " в " << msg.dst << "]: " << msg.msg;
+    std::string to_string() const {
+        std::stringstream ss;
+        ss << *this;
+        return ss.str();
+    }
+
+    friend std::ostream& operator<<(std::ostream& stream, const Message& message) {
+        Message out = message;
+        if (out == PULSAR_NO_MESSAGE) return stream;
+        if (out.msg.back() == '\n') out.msg.pop_back();
+        stream << "(" << out.id << ")[" << Datetime(out.datetime).toFormattedString() << " от " << out.src << " в " << out.dst << "]: " << out.msg;
         return stream;
     }
 
