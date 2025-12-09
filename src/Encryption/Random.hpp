@@ -31,4 +31,8 @@ namespace PulsarCrypto {
 
         return ubyte(dist(gen) & 0xFF);
     }
+
+    static inline ubyte random_ubyte(ubyte min, ubyte max) {
+        return min + random_ubyte() % (max - min + 1);
+    }
 };

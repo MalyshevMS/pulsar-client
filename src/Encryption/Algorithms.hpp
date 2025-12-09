@@ -52,7 +52,7 @@ namespace PulsarCrypto {
 
     ubyte generate_prime(ubyte min, ubyte max) { // Генератор простых чисел
         while (true) {
-            ubyte num = random_ubyte();
+            ubyte num = random_ubyte(min, max);
             if (is_prime(num)) return num;
         }
         return 0;
