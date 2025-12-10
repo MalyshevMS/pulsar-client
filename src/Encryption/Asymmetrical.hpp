@@ -5,59 +5,78 @@
 
 namespace PulsarCrypto {
     namespace Asymmetrical {
-        struct RSAkey {
-            ubyte n, s;
-            RSAkey(ubyte n, ubyte s) : n(n), s(s) {}
+        namespace RSA {
+            struct key {
+                big n, s;
+                key(big n, big s) : n(n), s(s) {}
+                
+                friend std::ostream& operator<<(std::ostream& os, const key& keys) {
+                    os << std::hex << keys.n << ", " << std::hex << keys.s;
+                    return os; 
+                }
+            };
+
+            big enc(big b, const key& key) {
+                return pow_mod(b, key.s, key.n);
+            }
+
+            big dec(big b, const key& key) {
+                return pow_mod(b, key.s, key.n);
+            }
+
+            class Generator {
+            private:
+                big p, q; // простые числа
+                big n; // модуль
+                big phi; // функция Эйлера
+                big e; // открытый ключ
+                big d; // закрытый ключ
+            public:
+                Generator() {
+                    *this = Generator(generate_prime(3, 65535), generate_prime(3, 65535), 3);
+                }
+
+                Generator(big prime1, big prime2, big public_exp = 3) : p(prime1), q(prime2), e(public_exp) {
+                    n = p * q;
+                    phi = (p - 1) * (q - 1);
+
+                    while (gcd(e, phi) != 1) e += 2;
+
+                    d = inv_mod(e, phi);
+                }
+
+                Generator(const key& key, big p_val, big q_val) { // создать только закрытый ключ
+                    p = p_val;
+                    q = q_val;
+                    n = key.n;
+                    e = key.s;
+                    phi = (p - 1) * (q - 1);
+                    d = inv_mod(e, phi);
+                }
+
+                key getPublic() {
+                    return {n, e};
+                }
+
+                key getPrivate() {
+                    return {n, d};
+                }
+            };
         };
 
-        ubyte enc(ubyte b, RSAkey& key) {
-            return pow_mod(b, key.s, key.n);
-        }
-
-        ubyte dec(ubyte b, RSAkey& key) {
-            return pow_mod(b, key.s, key.n);
-        }
-
-        bytes encrypt(const bytes& msg, RSAkey pub) {
-            bytes res;
-            for (ubyte c : msg) res.push_back(enc(c, pub));
+        bigs encrypt(const bytes& msg, RSA::key pub) {
+            bigs res;
+            for (ubyte c : msg) res.push_back(enc((big)c, pub));
             return res;
         }
 
-        bytes decrypt(const bytes& msg, RSAkey priv) {
+        bytes decrypt(const bigs& msg, RSA::key priv) {
             bytes res;
-            for (ubyte c : msg) res.push_back(dec(c, priv));
+            for (big c : msg) {
+                big d = dec(c, priv);
+                res.push_back(static_cast<ubyte>(d & 0xFF));
+            }
             return res;
         }
-
-        class RSAGenerator {
-        private:
-            ubyte p, q; // простые числа
-            ubyte n; // модуль
-            ubyte phi; // функция Эйлера
-            ubyte e; // открытый ключ
-            ubyte d; // закрытый ключ
-        public:
-            RSAGenerator() {
-
-            }
-
-            RSAGenerator(ubyte prime1, ubyte prime2, ubyte public_exp = 3) : p(prime1), q(prime2), e(public_exp) {
-                ubyte n = p * q;
-                ubyte phi = (p - 1) * (q - 1);
-
-                while (gcd(e, phi) != 1) e += 2;
-
-                d = inv_mod(e, phi);
-            }
-
-            RSAkey getPublic() {
-                return {n, e};
-            }
-
-            RSAkey getPrivate() {
-                return {n, d};
-            }
-        };
     };
 };

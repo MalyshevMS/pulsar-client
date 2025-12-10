@@ -12,6 +12,9 @@
 namespace PulsarCrypto {
     using ubyte = uint8_t;
     using bytes = std::vector<ubyte>;
+    using big = uint64_t;
+    using bigs = std::vector<big>;
+    using verybig = __int128;
 
     struct keypair {
         bytes pub;
@@ -21,7 +24,9 @@ namespace PulsarCrypto {
     };
 
     static bytes to_bytes(const std::string& raw) {
-        return bytes(raw.begin(), raw.end());
+        bytes res;
+        for (auto c : raw) res.push_back(c);
+        return res;
     }
 
     static std::string from_bytes(const bytes& b) {

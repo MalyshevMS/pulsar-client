@@ -6,33 +6,28 @@ namespace PulsarCrypto {
     static inline bytes random_bytes(size_t n) {
         static std::random_device rd;
         static std::mt19937_64 gen(rd());
-        static std::uniform_int_distribution<ubyte> dist;
+        static std::uniform_int_distribution<big> dist64(0, UINT64_MAX);
 
         bytes out(n);
         size_t i = 0;
 
         while (i + 8 <= n) {
-            ubyte v = dist(gen);
+            big v = dist64(gen);
 
             for (int k = 0; k < 8; k++)
                 out[i++] = ubyte((v >> (k * 8)) & 0xFF);
         }
         
         while (i < n)
-            out[i++] = ubyte(dist(gen) & 0xFF);
+            out[i++] = ubyte(dist64(gen) & 0xFF);
 
         return out;
     }
 
-    static inline ubyte random_ubyte() {
+    static inline big random_big(big min, big max) {
         static std::random_device rd;
         static std::mt19937_64 gen(rd());
-        static std::uniform_int_distribution<ubyte> dist;
-
-        return ubyte(dist(gen) & 0xFF);
-    }
-
-    static inline ubyte random_ubyte(ubyte min, ubyte max) {
-        return min + random_ubyte() % (max - min + 1);
+        std::uniform_int_distribution<big> dist(min, max);
+        return dist(gen);
     }
 };

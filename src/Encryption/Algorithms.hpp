@@ -4,56 +4,72 @@
 #include "Random.hpp"
 
 namespace PulsarCrypto {
-    ubyte gcd(ubyte a, ubyte b) { // НОД
+    big gcd(big a, big b) { // НОД
         while (b != 0) {
-            ubyte t = b;
+            big t = b;
             b = a % b;
             a = t;
         }
+
         return a;
     }
 
-    ubyte inv_mod(ubyte a, ubyte mod) { // Обратный модуль
-        ubyte m0 = mod, x0 = 0, x1 = 1;
-        ubyte t, q;
+    big inv_mod(big a, big mod) { // Обратный модуль
         if (mod == 1) return 0;
-        while (a > 1) {
-            q = a / mod;
-            t = mod;
-            mod = a % mod;
-            a = t;
-            t = x0;
-            x0 = x1 - q * x0;
-            x1 = t;
+
+        verybig t = 0, newt = 1;
+        verybig r = mod, newr = a;
+
+        while (newr != 0) {
+            verybig q = r / newr;
+            verybig tmp = newt;
+            newt = t - q * newt;
+            t = tmp;
+            tmp = newr;
+            newr = r - q * newr;
+            r = tmp;
         }
-        if (x1 < 0) x1 += m0;
-        return x1;
+
+        if (r > 1) return 0;
+        if (t < 0) t += mod;
+        return (big)t;
     }
 
-    ubyte pow_mod(ubyte base, ubyte exp, ubyte mod) { // (base ^ exp) % mod
-        ubyte result = 1;
+    big pow_mod(big base, big exp, big mod) { // (base ^ exp) % mod
+        big result = 1;
         base = base % mod;
+
         while (exp > 0) {
-            if (exp % 2 == 1)
-                result = (result * base) % mod;
+            if (exp & 1) result = (big)((verybig)result * base % mod);
+
             exp = exp >> 1;
-            base = (base * base) % mod;
+            base = (big)((verybig)base * base % mod);
         }
+
         return result;
     }
 
-    bool is_prime(ubyte n) { // Проверка на простоту
+    bool is_prime(big n) { // Проверка на простоту
         if (n <= 1) return false;
-        for (ubyte i = 2; i * i <= n; ++i)
+        if (n <= 3) return true;
+        if (n % 2 == 0) return false;
+
+        big limit = (big)std::sqrt((long double)n);
+        for (big i = 3; i <= limit; i += 2)
             if (n % i == 0)
                 return false;
         return true;
     }
 
-    ubyte generate_prime(ubyte min, ubyte max) { // Генератор простых чисел
+    big generate_prime(big min, big max) { // Генератор простых чисел в заданном диапазоне
+        if (min < 3) min = 3;
+        if (max <= min) max = min + 100;
         while (true) {
-            ubyte num = random_ubyte(min, max);
-            if (is_prime(num)) return num;
+            big num = random_big(min, max);
+            if (num % 2 == 0) ++num;
+            for (big candidate = num; candidate <= max; candidate += 2) {
+                if (is_prime(candidate)) return candidate;
+            }
         }
         return 0;
     }

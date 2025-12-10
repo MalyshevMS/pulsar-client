@@ -1,6 +1,7 @@
 #include "defines"
 #include "API/PulsarAPI.hpp"
 #include "Network/Client.hpp"
+#include "Network/Encryption.hpp"
 #include <exception>
 #include <csignal>
 
@@ -14,8 +15,6 @@
 
 int main(int argc, const char **argv)
 {
-
-    // Install a terminate handler to log unexpected terminations and abort
     std::set_terminate([]()
                        {
         try {
@@ -31,7 +30,6 @@ int main(int argc, const char **argv)
                 std::cerr << "terminate() called without an active exception" << std::endl;
             }
         } catch (...) {}
-        // Trigger abort to capture backtrace when running under gdb
         std::raise(SIGABRT);
         std::abort(); });
 
@@ -54,13 +52,11 @@ int main(int argc, const char **argv)
     serverIP = PULSAR_IP_PRESET;
 #endif
 
-    if (argc <= 1)
-    {
+    if (argc <= 1) {
         std::cout << "Введите имя пользователя: ";
         std::getline(std::cin, name);
     }
-    else
-    {
+    else {
         name = "@" + std::string(argv[1]);
     }
     std::cout << "Введите пароль (нажмите ENTER если его нет): ";
@@ -70,6 +66,10 @@ int main(int argc, const char **argv)
         name = "@" + name;
     for (auto &c : name)
         c = tolower(c);
+
+#ifdef PULSAR_RSA_TEST
+    if (!rsa_test(PULSAR_RSA_TEST)) return -1;
+#endif
 
     Client client(name, password, serverIP, PULSAR_PORT);
     client.run();
