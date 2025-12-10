@@ -22,7 +22,7 @@
 #define PULSAR_NO_CONTACT std::string("@none") + PULSAR_EOT
 #define PULSAR_NO_PROFILE Profile("", "", "", Datetime(0x0))
 #define PULSAR_NO_MESSAGE Message(0ull, 0ll, "", "", "")
-#define PULSAR_RSA_TEST false // if defined, performing RSA test. set to true to see full logs
+// #define PULSAR_RSA_TEST false // if defined, performing RSA test. set to true to see full logs
 
 #ifdef PULSAR_DEV
     #define PULSAR_IP_PRESET "127.0.0.1"

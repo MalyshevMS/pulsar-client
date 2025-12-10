@@ -52,27 +52,27 @@ int main(int argc, const char **argv)
     serverIP = PULSAR_IP_PRESET;
 #endif
 
-    if (argc <= 1) {
-        std::cout << "Введите имя пользователя: ";
-        std::getline(std::cin, name);
-    }
-    else {
-        name = "@" + std::string(argv[1]);
-    }
-    std::cout << "Введите пароль (нажмите ENTER если его нет): ";
-    std::getline(std::cin, password);
+    // if (argc <= 1) {
+    //     std::cout << "Введите имя пользователя: ";
+    //     std::getline(std::cin, name);
+    // }
+    // else {
+    //     name = "@" + std::string(argv[1]);
+    // }
+    // std::cout << "Введите пароль (нажмите ENTER если его нет): ";
+    // std::getline(std::cin, password);
 
-    if (name[0] != '@')
-        name = "@" + name;
-    for (auto &c : name)
-        c = tolower(c);
+    // if (name[0] != '@')
+    //     name = "@" + name;
+    // for (auto &c : name)
+    //     c = tolower(c);
 
 #ifdef PULSAR_RSA_TEST
     if (!rsa_test(PULSAR_RSA_TEST)) return -1;
 #endif
 
-    Client client(name, password, serverIP, PULSAR_PORT);
-    client.run();
+    // Client client(name, password, serverIP, PULSAR_PORT);
+    // client.run();
 
     std::cout << "Клиент завершил свою работу." << std::endl;
 
