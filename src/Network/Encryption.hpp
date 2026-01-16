@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../Encryption/EndPoint.hpp"
+#include <iostream>
 
 bool rsa_test(bool logs) {
     std::cout << "Выполняется проверка RSA..." << std::endl;

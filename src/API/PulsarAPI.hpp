@@ -12,6 +12,7 @@
 #include "../Other/Profile.hpp"
 #include "../lib/hash.h"
 #include "../Network/Checker.hpp"
+#include "../Encryption/EndPoint.hpp"
 
 class PulsarAPI {
 private:
@@ -219,6 +220,10 @@ public:
     }
 
     /// Common API
+
+    void sendRsaKey(PulsarCrypto::Asymmetrical::RSA::key pub) {
+        auto response = request("rsa", pub.n, pub.s);
+    }
 
     bool joinChannel(const std::string& channel) {
         auto response = request("join", channel);
