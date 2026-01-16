@@ -19,7 +19,7 @@ class Client {
 private:
     std::string name, password;
     std::string ip;
-    ushort port;
+    unsigned short port;
 
     std::shared_ptr<sf::TcpSocket> socket;
     std::shared_ptr<PulsarAPI> api;
@@ -28,7 +28,7 @@ private:
 
     std::string dest = ":all";
 public:
-    Client(const std::string& name, const std::string& password_unhashed, const std::string& ip, ushort port)
+    Client(const std::string& name, const std::string& password_unhashed, const std::string& ip, unsigned short port)
      : ip(ip), port(port), name(name), password(hash(password_unhashed)) {
         api = std::make_shared<PulsarAPI>(socket, name);
         console = std::make_unique<Console>(api, dest, this->name);

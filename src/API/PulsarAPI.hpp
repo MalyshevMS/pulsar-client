@@ -42,7 +42,7 @@ public:
 
     std::shared_ptr<sf::TcpSocket> getSocket() { return socket; }
 
-    bool connect(const std::string& ip, ushort port) {
+    bool connect(const std::string& ip, unsigned short port) {
         if (!socket) socket = std::make_shared<sf::TcpSocket>();
 
         sf::Socket::Status status = socket->connect(*sf::IpAddress::resolve(ip), port, sf::milliseconds(PULSAR_TIMEOUT_MS));
