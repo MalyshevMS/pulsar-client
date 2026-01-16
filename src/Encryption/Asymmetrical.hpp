@@ -16,6 +16,10 @@ namespace PulsarCrypto {
                 }
             };
 
+            struct key_pair {
+                key pub, priv;
+            };
+
             big enc(big b, const key& key) {
                 return pow_mod(b, key.s, key.n);
             }
@@ -64,13 +68,13 @@ namespace PulsarCrypto {
             };
         };
 
-        bigs encrypt(const bytes& msg, RSA::key pub) {
-            bigs res;
+        bytes encrypt(const bytes& msg, RSA::key pub) {
+            bytes res;
             for (ubyte c : msg) res.push_back(enc((big)c, pub));
             return res;
         }
 
-        bytes decrypt(const bigs& msg, RSA::key priv) {
+        bytes decrypt(const bytes& msg, RSA::key priv) {
             bytes res;
             for (big c : msg) {
                 big d = dec(c, priv);

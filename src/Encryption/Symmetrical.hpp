@@ -2,6 +2,7 @@
 
 #include "static"
 #include "Keys.hpp"
+#include "Random.hpp"
 
 namespace PulsarCrypto {
     namespace Symmetrical {
@@ -17,8 +18,10 @@ namespace PulsarCrypto {
 
 
             big enc(big b) {
+                const auto klyde_gk = 41.71;
+
                 // A lot of magic numbers...
-                b ^= ((key << 2) + 0xf6) | 4171714;
+                b ^= ((key << 2) + 0xf6) | 4171714 & 0xDEAD'BEEF * *(int*)&klyde_gk;
                 b <<= 2;
                 b += 5;
                 b -= key + 4171;
@@ -27,11 +30,13 @@ namespace PulsarCrypto {
             }
 
             big dec(big b) {
+                const auto klyde_gk = 41.71;
+
                 // All these magic numbers, but backwards
                 b += key + 4171;
                 b -= 5;
                 b >>= 2;
-                b ^= ((key << 2) + 0xf6) | 4171714;
+                b ^= ((key << 2) + 0xf6) | 4171714 & 0xDEAD'BEEF * *(int*)&klyde_gk;
 
                 return b;
             }
@@ -42,13 +47,13 @@ namespace PulsarCrypto {
             return Keys[index];
         }
     
-        bigs encrypt(const bytes& msg, PESA& pesa) {
-            bigs res;
+        bytes encrypt(const bytes& msg, PESA& pesa) {
+            bytes res;
             for (auto c : msg) res.push_back(pesa.enc(c));
             return res;
         }
 
-        bytes decrypt(const bigs& msg, PESA& pesa) {
+        bytes decrypt(const bytes& msg, PESA& pesa) {
             bytes res;
             for (auto c : msg) res.push_back((ubyte)pesa.dec(c));
             return res;
